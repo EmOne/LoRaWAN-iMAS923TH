@@ -49,15 +49,18 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32l4xx_hal.h"
+#include "i2c.h"
+#include "usart.h"
 #include "usb_device.h"
+#include "gpio.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "WiMOD_LoRaWAN_API.h"
+#include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
-UART_HandleTypeDef hlpuart1;
-UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -66,13 +69,16 @@ UART_HandleTypeDef huart3;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_LPUART1_UART_Init(void);
-static void MX_USART3_UART_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+// forward declarations
+static void     ShowMenu(const char*);
+static void     Ping();
+static void     GetDeviceInfo();
+static void     Join();
+static void     SendUData();
+static void     SendCData();
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -111,6 +117,7 @@ int main(void)
   MX_LPUART1_UART_Init();
   MX_USART3_UART_Init();
   MX_USB_DEVICE_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -119,11 +126,57 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+	  //Send message to UART port
+	  	  printf("\n\rHelloWorld\n\r");
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
+	// handle receiver process
+	WiMOD_LoRaWAN_Process();
 
+	// keyboard pressed ?
+	if (kbhit()) {
+		// get command
+		char cmd = getch();
+
+		printf("\n\r");
+
+		// handle commands
+		switch (cmd) {
+		case 'e':
+		case 'x':
+			run = false;
+			break;
+
+		case 'i':
+			// get device info
+			GetDeviceInfo();
+			break;
+
+		case 'p':
+			// ping device
+			Ping();
+			break;
+
+		case 'j':
+			// join network
+			Join();
+			break;
+
+		case 'u':
+			// send u-data
+			SendUData();
+			break;
+
+		case 'c':
+			// send c-data
+			SendCData();
+			break;
+
+		case ' ':
+			ShowMenu(comPort);
+			break;
+		}
   }
   /* USER CODE END 3 */
 
@@ -178,9 +231,10 @@ void SystemClock_Config(void)
   }
 
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART3|RCC_PERIPHCLK_LPUART1
-                              |RCC_PERIPHCLK_USB;
+                              |RCC_PERIPHCLK_I2C1|RCC_PERIPHCLK_USB;
   PeriphClkInit.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
   PeriphClkInit.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PCLK1;
+  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
   PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLLSAI1;
   PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_HSE;
   PeriphClkInit.PLLSAI1.PLLSAI1M = 1;
@@ -206,132 +260,125 @@ void SystemClock_Config(void)
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-/* LPUART1 init function */
-static void MX_LPUART1_UART_Init(void)
-{
-
-  hlpuart1.Instance = LPUART1;
-  hlpuart1.Init.BaudRate = 115200;
-  hlpuart1.Init.WordLength = UART_WORDLENGTH_8B;
-  hlpuart1.Init.StopBits = UART_STOPBITS_1;
-  hlpuart1.Init.Parity = UART_PARITY_NONE;
-  hlpuart1.Init.Mode = UART_MODE_TX_RX;
-  hlpuart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  hlpuart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  hlpuart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  hlpuart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  hlpuart1.FifoMode = UART_FIFOMODE_DISABLE;
-  if (HAL_UART_Init(&hlpuart1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (HAL_UARTEx_SetTxFifoThreshold(&hlpuart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (HAL_UARTEx_SetRxFifoThreshold(&hlpuart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-}
-
-/* USART3 init function */
-static void MX_USART3_UART_Init(void)
-{
-
-  huart3.Instance = USART3;
-  huart3.Init.BaudRate = 115200;
-  huart3.Init.WordLength = UART_WORDLENGTH_8B;
-  huart3.Init.StopBits = UART_STOPBITS_1;
-  huart3.Init.Parity = UART_PARITY_NONE;
-  huart3.Init.Mode = UART_MODE_TX_RX;
-  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart3.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart3.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart3) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (HAL_UARTEx_SetTxFifoThreshold(&huart3, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (HAL_UARTEx_SetRxFifoThreshold(&huart3, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (HAL_UARTEx_DisableFifoMode(&huart3) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-}
-
-/** Configure pins as 
-        * Analog 
-        * Input 
-        * Output
-        * EVENT_OUT
-        * EXTI
-*/
-static void MX_GPIO_Init(void)
-{
-
-  GPIO_InitTypeDef GPIO_InitStruct;
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOG_CLK_ENABLE();
-  HAL_PWREx_EnableVddIO2();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LD3_Pin|LD2_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(USB_PowerSwitchOn_GPIO_Port, USB_PowerSwitchOn_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : B1_Pin */
-  GPIO_InitStruct.Pin = B1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : LD3_Pin LD2_Pin */
-  GPIO_InitStruct.Pin = LD3_Pin|LD2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : USB_PowerSwitchOn_Pin */
-  GPIO_InitStruct.Pin = USB_PowerSwitchOn_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(USB_PowerSwitchOn_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : USB_OverCurrent_Pin */
-  GPIO_InitStruct.Pin = USB_OverCurrent_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(USB_OverCurrent_GPIO_Port, &GPIO_InitStruct);
-
-}
-
 /* USER CODE BEGIN 4 */
+//------------------------------------------------------------------------------
+//
+//  ShowMenu
+//
+//  @brief: show main menu
+//
+//------------------------------------------------------------------------------
+void
+ShowMenu(const char* comPort)
+{
+    printf("\n\r");
+    printf("------------------------------\n\r");
+    printf("Using comport:%s\r\n", comPort);
+    printf("------------------------------\n\r");
+    printf("[SPACE] : show this menu\n\r");
+    printf("[p]     : ping device\n\r");
+    printf("[i]     : get device information\n\r");
+    printf("[j]     : join network request\n\r");
+    printf("[u]     : send unconfirmed radio message\n\r");
+    printf("[c]     : send confirmed radio message\n\r");
+    printf("[e|x]   : exit program\n\r");
+    printf("\n\r-> enter command: ");
 
+}
+//------------------------------------------------------------------------------
+//
+//  Ping
+//
+//  @brief: ping device
+//
+//------------------------------------------------------------------------------
+void
+Ping()
+{
+    printf("ping request\n\r");
+
+    WiMOD_LoRaWAN_SendPing();
+}
+//------------------------------------------------------------------------------
+//
+//  GetDeviceInfo
+//
+//  @brief: get device information
+//
+//------------------------------------------------------------------------------
+void
+GetDeviceInfo()
+{
+    printf("get firmware version\n\r");
+
+    WiMOD_LoRaWAN_GetFirmwareVersion();
+}
+//------------------------------------------------------------------------------
+//
+//  Join
+//
+//  @brief: ping device
+//
+//------------------------------------------------------------------------------
+void
+Join()
+{
+    printf("join network request\n\r");
+
+    WiMOD_LoRaWAN_JoinNetworkRequest();
+}
+//------------------------------------------------------------------------------
+//
+//  SendUData
+//
+//  @brief: send unconfirmed radio message
+//
+//------------------------------------------------------------------------------
+void
+SendUData()
+{
+    printf("send U-Data\n\r");
+
+    // port 0x21
+    UINT8 port = 0x21;
+
+    UINT8 data[4];
+
+    data[0] = 0x01;
+    data[1] = 0x02;
+    data[2] = 0x03;
+    data[3] = 0x04;
+
+    // send unconfirmed radio message
+    WiMOD_LoRaWAN_SendURadioData(port, data, 4);
+}
+//------------------------------------------------------------------------------
+//
+//  SendCData
+//
+//  @brief: send confirmed radio message
+//
+//------------------------------------------------------------------------------
+void
+SendCData()
+{
+    printf("send C-Data\n\r");
+
+    // port 0x21
+    UINT8 port = 0x23;
+
+    UINT8 data[6];
+
+    data[0] = 0x0A;
+    data[1] = 0x0B;
+    data[2] = 0x0C;
+    data[3] = 0x0D;
+    data[4] = 0x0E;
+    data[5] = 0x0F;
+
+    // send unconfirmed radio message
+    WiMOD_LoRaWAN_SendCRadioData(port, data, 6);
+}
 /* USER CODE END 4 */
 
 /**
