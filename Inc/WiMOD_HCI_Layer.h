@@ -23,6 +23,9 @@
 //------------------------------------------------------------------------------
 
 #include <stdint.h>
+#include <stdbool.h>
+
+#include <usart.h>
 
 //------------------------------------------------------------------------------
 //
@@ -77,7 +80,12 @@ typedef TWiMOD_HCI_Message* (*TWiMOD_HCI_CbRxMessage)(TWiMOD_HCI_Message* rxMess
 
 // Init HCI Layer
 bool
-WiMOD_HCI_Init(const char*              comPort,
+WiMOD_HCI_Init(
+#ifdef Q_OS_WIN
+		const char*              comPort,        // comPort
+#else
+		UART_HandleTypeDef * comPort,
+#endif
                TWiMOD_HCI_CbRxMessage   cbRxMessage,
                TWiMOD_HCI_Message*      rxMessage);
 
@@ -87,7 +95,7 @@ WiMOD_HCI_SendMessage(TWiMOD_HCI_Message* txMessage);
 
 // Receiver Process
 void
-WiMOD_HCI_Process();
+WiMOD_HCI_Process(void);
 
 #endif // WIMOD_HCI_LAYER_H
 

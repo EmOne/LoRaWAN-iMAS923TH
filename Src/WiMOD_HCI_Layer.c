@@ -74,7 +74,12 @@ static UINT8                TxBuffer[sizeof( TWiMOD_HCI_Message ) * 2 + 2];
 //------------------------------------------------------------------------------
 
 bool
-WiMOD_HCI_Init(const char*              comPort,        // comPort
+WiMOD_HCI_Init(
+#ifdef Q_OS_WIN
+		const char*              comPort,        // comPort
+#else
+		UART_HandleTypeDef * comPort,
+#endif
                TWiMOD_HCI_CbRxMessage   cbRxMessage,    // HCI msg recv. callback
                TWiMOD_HCI_Message*      rxMessage)      // intial rxMessage
 {
@@ -94,7 +99,7 @@ WiMOD_HCI_Init(const char*              comPort,        // comPort
     SLIP_SetRxBuffer(&rxMessage->SapID, sizeof(TWiMOD_HCI_Message) - sizeof(UINT16));
 
     // init serial device
-    return SerialDevice_Open(comPort, Baudrate_115200, DataBits_8, Parity_None);
+return SerialDevice_Open(comPort, Baudrate_115200, DataBits_8, Parity_None);
 }
 
 //------------------------------------------------------------------------------

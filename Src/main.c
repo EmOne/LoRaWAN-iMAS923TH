@@ -73,12 +73,18 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 // forward declarations
-static void     ShowMenu(const char*);
-static void     Ping();
-static void     GetDeviceInfo();
-static void     Join();
-static void     SendUData();
-static void     SendCData();
+static void     ShowMenu(
+#ifdef Q_OS_WIN
+		const char*
+#else
+		void
+#endif
+		);
+static void     Ping(void);
+static void     GetDeviceInfo(void);
+static void     Join(void);
+static void     SendUData(void);
+static void     SendCData(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -93,7 +99,7 @@ static void     SendCData();
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+//	bool run = true;
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -126,8 +132,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  //Send message to UART port
-	  	  printf("\n\rHelloWorld\n\r");
+  //Send message to UART port
+	  printf("\n\rHello welcome to WiMOD HCL example!!!\n\r");
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -135,18 +141,17 @@ int main(void)
 	WiMOD_LoRaWAN_Process();
 
 	// keyboard pressed ?
-	if (kbhit()) {
 		// get command
-		char cmd = getch();
+		char cmd = getchar();
 
 		printf("\n\r");
 
 		// handle commands
 		switch (cmd) {
-		case 'e':
-		case 'x':
-			run = false;
-			break;
+//		case 'e':
+//		case 'x':
+//			run = false;
+//			break;
 
 		case 'i':
 			// get device info
@@ -174,9 +179,14 @@ int main(void)
 			break;
 
 		case ' ':
-			ShowMenu(comPort);
+			ShowMenu(
+#ifdef Q_OS_WIN
+					comPort
+#endif
+					);
 			break;
 		}
+
   }
   /* USER CODE END 3 */
 
@@ -269,11 +279,19 @@ void SystemClock_Config(void)
 //
 //------------------------------------------------------------------------------
 void
-ShowMenu(const char* comPort)
+ShowMenu(
+#ifdef Q_OS_WIN
+		const char* comPort
+#else
+		void
+#endif
+		)
 {
     printf("\n\r");
     printf("------------------------------\n\r");
+#ifdef Q_OS_WIN
     printf("Using comport:%s\r\n", comPort);
+#endif
     printf("------------------------------\n\r");
     printf("[SPACE] : show this menu\n\r");
     printf("[p]     : ping device\n\r");
@@ -281,7 +299,7 @@ ShowMenu(const char* comPort)
     printf("[j]     : join network request\n\r");
     printf("[u]     : send unconfirmed radio message\n\r");
     printf("[c]     : send confirmed radio message\n\r");
-    printf("[e|x]   : exit program\n\r");
+//    printf("[e|x]   : exit program\n\r");
     printf("\n\r-> enter command: ");
 
 }
@@ -293,7 +311,7 @@ ShowMenu(const char* comPort)
 //
 //------------------------------------------------------------------------------
 void
-Ping()
+Ping(void)
 {
     printf("ping request\n\r");
 
@@ -307,7 +325,7 @@ Ping()
 //
 //------------------------------------------------------------------------------
 void
-GetDeviceInfo()
+GetDeviceInfo(void)
 {
     printf("get firmware version\n\r");
 
@@ -321,7 +339,7 @@ GetDeviceInfo()
 //
 //------------------------------------------------------------------------------
 void
-Join()
+Join(void)
 {
     printf("join network request\n\r");
 
@@ -335,7 +353,7 @@ Join()
 //
 //------------------------------------------------------------------------------
 void
-SendUData()
+SendUData(void)
 {
     printf("send U-Data\n\r");
 
@@ -360,7 +378,7 @@ SendUData()
 //
 //------------------------------------------------------------------------------
 void
-SendCData()
+SendCData(void)
 {
     printf("send C-Data\n\r");
 

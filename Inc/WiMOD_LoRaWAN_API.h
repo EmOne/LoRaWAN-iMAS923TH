@@ -23,7 +23,9 @@
 //------------------------------------------------------------------------------
 
 #include <stdint.h>
+#include <stdbool.h>
 
+#include <usart.h>
 //------------------------------------------------------------------------------
 //
 //  General Declarations
@@ -121,19 +123,25 @@ typedef struct
 
 // init
 bool
-WiMOD_LoRaWAN_Init(const char* comPort);
+WiMOD_LoRaWAN_Init(
+#ifdef Q_OS_WIN
+		const char*              comPort        // comPort
+#else
+		UART_HandleTypeDef * comPort
+#endif
+		);
 
 // ping device
 int
-WiMOD_LoRaWAN_SendPing();
+WiMOD_LoRaWAN_SendPing(void);
 
 // get firmware Version
 int
-WiMOD_LoRaWAN_GetFirmwareVersion();
+WiMOD_LoRaWAN_GetFirmwareVersion(void);
 
 // join network
 int
-WiMOD_LoRaWAN_JoinNetworkRequest();
+WiMOD_LoRaWAN_JoinNetworkRequest(void);
 
 // send unconfirmed radio data
 int
@@ -145,7 +153,7 @@ WiMOD_LoRaWAN_SendCRadioData(UINT8 port, UINT8* data, int length);
 
 // receiver process
 void
-WiMOD_LoRaWAN_Process();
+WiMOD_LoRaWAN_Process(void);
 
 #endif // WIMOD_LORAWAN_API_H
 

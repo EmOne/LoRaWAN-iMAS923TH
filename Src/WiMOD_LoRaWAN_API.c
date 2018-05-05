@@ -126,7 +126,13 @@ static const TIDString WiMOD_LoRaWAN_StatusStrings[] =
 //------------------------------------------------------------------------------
 
 bool
-WiMOD_LoRaWAN_Init(const char* comPort)
+WiMOD_LoRaWAN_Init(
+#ifdef Q_OS_WIN
+		const char*              comPort        // comPort
+#else
+		UART_HandleTypeDef * comPort
+#endif
+		)
 {
     // init HCI layer
     return WiMOD_HCI_Init(comPort,                  // comPort
@@ -163,7 +169,7 @@ WiMOD_LoRaWAN_SendPing()
 //------------------------------------------------------------------------------
 
 int
-WiMOD_LoRaWAN_GetFirmwareVersion()
+WiMOD_LoRaWAN_GetFirmwareVersion(void)
 {
     // 1. init header
     TxMessage.SapID     = DEVMGMT_SAP_ID;
@@ -183,7 +189,7 @@ WiMOD_LoRaWAN_GetFirmwareVersion()
 //------------------------------------------------------------------------------
 
 int
-WiMOD_LoRaWAN_JoinNetworkRequest()
+WiMOD_LoRaWAN_JoinNetworkRequest(void)
 {
     // 1. init header
     TxMessage.SapID     = LORAWAN_SAP_ID;
@@ -275,7 +281,7 @@ WiMOD_LoRaWAN_SendCRadioData(UINT8  port,       // LoRaWAN Port
 //------------------------------------------------------------------------------
 
 void
-WiMOD_LoRaWAN_Process()
+WiMOD_LoRaWAN_Process(void)
 {
     // call HCI process
     WiMOD_HCI_Process();

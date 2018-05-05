@@ -2,9 +2,7 @@
 #define SERIAL_DEVICE_H
 
 #include <stdint.h>
-
-#define Q_OS_WIN
-
+#include <stdbool.h>
 #ifdef  Q_OS_WIN
 
 #include <windows.h>
@@ -15,7 +13,14 @@
 #define DataBits_8          8
 #define Parity_Even         EVENPARITY
 #define Parity_None         NOPARITY
-
+#else
+#include <usart.h>
+#define Baudrate_9600       9600
+#define Baudrate_115200     115200
+#define DataBits_7          UART_WORDLENGTH_7B
+#define DataBits_8          UART_WORDLENGTH_8B
+#define Parity_Even         UART_PARITY_EVEN
+#define Parity_None         UART_PARITY_NONE
 #endif
 
 typedef uint8_t             UINT8;
@@ -23,7 +28,12 @@ typedef uint32_t            UINT32;
 
 // open serial device
 bool
-SerialDevice_Open(const char*   comPort,
+SerialDevice_Open(
+#ifdef Q_OS_WIN
+		const char*   comPort,
+#else
+		UART_HandleTypeDef * huart,
+#endif
                   UINT32        baudRate,
                   int           dataBits,
                   UINT8         parity);

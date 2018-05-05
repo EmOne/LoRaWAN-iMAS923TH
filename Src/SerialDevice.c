@@ -51,7 +51,12 @@ static HANDLE   ComHandle = INVALID_HANDLE_VALUE;
 //------------------------------------------------------------------------------
 
 bool
-SerialDevice_Open(const char*   comPort,
+SerialDevice_Open(
+#ifdef Q_OS_WIN
+		const char*   comPort,
+#else
+		UART_HandleTypeDef * huart,
+#endif
                   UINT32        baudRate,
                   int           dataBits,
                   UINT8         parity)
@@ -121,6 +126,33 @@ SerialDevice_Open(const char*   comPort,
     }
 #else
     // Todo : add your own platform specific code here
+
+    huart->Init.BaudRate = baudRate;
+    huart->Init.WordLength = dataBits;
+    huart->Init.StopBits = UART_STOPBITS_1;
+    huart->Init.Parity = parity;
+
+	if (HAL_UART_Init(huart) != HAL_OK)
+	{
+		SerialDevice_Close();
+		_Error_Handler(__FILE__, __LINE__);
+	}
+
+//	if (HAL_UARTEx_SetTxFifoThreshold(&huart, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+//	{
+//	_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	if (HAL_UARTEx_SetRxFifoThreshold(&huart, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+//	{
+//	_Error_Handler(__FILE__, __LINE__);
+//	}
+//
+//	if (HAL_UARTEx_DisableFifoMode(&huart) != HAL_OK)
+//	{
+//	_Error_Handler(__FILE__, __LINE__);
+//	}
+
 #endif
     // error
     return false;
@@ -158,6 +190,7 @@ SerialDevice_Close()
     }
 #else
     // Todo : add your own platform specific code here
+    HAL_UART_DeInit(&huart3);
 #endif
     // error
     return false;
@@ -195,6 +228,12 @@ SerialDevice_SendData(UINT8* txBuffer, int txLength)
     }
 #else
     // Todo : add your own platform specific code here
+	if(HAL_UART_Transmit_IT(&huart3,txBuffer,txLength) != HAL_ERROR)
+	{
+		if (huart3.TxXferCount == txLength) {
+			return huart3.TxXferCount;
+		}
+	}
 #endif
     // error
     return -1;
@@ -232,6 +271,10 @@ SerialDevice_SendByte(UINT8 txByte)
     }
 #else
     // Todo : add your own platform specific code here
+    if(HAL_UART_Transmit_IT(&huart3,&txByte,1) != HAL_ERROR)
+	{
+		return huart3.TxXferCount;
+	}
 #endif
     // error
     return -1;
@@ -263,6 +306,10 @@ SerialDevice_ReadData(UINT8* rxBuffer, int rxBufferSize)
     }
 #else
     // Todo : add your own platform specific code here
+    if(HAL_UART_Receive_IT(&huart3, rxBuffer, rxBufferSize) != HAL_ERROR)
+    {
+    	return huart3.RxXferCount;
+    }
 #endif
     // error
     return -1;
