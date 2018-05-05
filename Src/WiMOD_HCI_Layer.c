@@ -176,7 +176,7 @@ WiMOD_HCI_SendMessage(TWiMOD_HCI_Message* txMessage)
 void
 WiMOD_HCI_Process()
 {
-    UINT8   rxBuf[20];
+    UINT8   rxBuf[64] = { 0 };
 
     // read small chunk of data
     int rxLength = SerialDevice_ReadData(rxBuf, sizeof(rxBuf));

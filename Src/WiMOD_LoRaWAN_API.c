@@ -21,6 +21,7 @@
 
 #include "WiMOD_LoRaWAN_API.h"
 #include "WiMOD_HCI_Layer.h"
+#include "SerialDevice.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -39,6 +40,12 @@ WiMOD_LoRaWAN_Process_RxMessage(TWiMOD_HCI_Message*  rxMessage);
 
 static void
 WiMOD_LoRaWAN_Process_DevMgmt_Message(TWiMOD_HCI_Message*  rxMessage);
+
+static void
+WiMOD_LoRaWAN_DevMgmt_DeviceStatus_Rsp(TWiMOD_HCI_Message* rxMessage);
+
+static void
+WiMOD_LoRaWAN_DevMgmt_DeviceInfo_Rsp(TWiMOD_HCI_Message*  rxMessage);
 
 static void
 WiMOD_LoRaWAN_DevMgmt_FirmwareVersion_Rsp(TWiMOD_HCI_Message*  rxMessage);
@@ -100,8 +107,8 @@ static const TIDString WiMOD_LoRaWAN_StatusStrings[] =
     { LORAWAN_STATUS_CMD_NOT_SUPPORTED,     "command not supported" },
     { LORAWAN_STATUS_WRONG_PARAMETER,       "wrong parameter" },
     { LORAWAN_STATUS_WRONG_DEVICE_MODE,     "wrong device mode" },
-    { LORAWAN_STATUS_NOT_ACTIVATED,         "device not activated" },
-    { LORAWAN_STATUS_BUSY,                  "device busy - command rejected" },
+    { LORAWAN_STATUS_DEVICE_NOT_ACTIVATED,         "device not activated" },
+    { LORAWAN_STATUS_DEVICE_BUSY,                  "device busy - command rejected" },
     { LORAWAN_STATUS_QUEUE_FULL,            "message queue full - command rejected" },
     { LORAWAN_STATUS_LENGTH_ERROR,          "HCI message length error" },
     { LORAWAN_STATUS_NO_FACTORY_SETTINGS,   "no factory settings available" },
@@ -111,6 +118,21 @@ static const TIDString WiMOD_LoRaWAN_StatusStrings[] =
     // end of table
     { 0, 0 }
 };
+
+// Status Codes for DeviceMgmt Response Messages
+static const TIDString WiMOD_DeviceMgmt_ModuleTypes[] =
+{
+    { 0x90, "iM880A (obsolete)" },
+    { 0x92, "iM880A-L (128k)" } ,
+    { 0x93, "iU880A (128k)" },
+    { 0x98, "iM880B-L" },
+    { 0x99, "iU880B" },
+	{ 0x9A, "iM980A (iMAS923TH for Thailand)" },
+	{ 0xA0, "iM881A" },
+    // end of table
+    { 0, 0 }
+};
+
 //------------------------------------------------------------------------------
 //
 //  Section Code
@@ -140,6 +162,95 @@ WiMOD_LoRaWAN_Init(
                    &RxMessage);                     // rx message
 }
 
+
+int WiMOD_DevMgmt_Msg_Req(uint8_t msg_id, uint8_t* val, uint16_t len)
+{
+	TxMessage.SapID = DEVMGMT_SAP_ID;
+	TxMessage.MsgID = msg_id;
+
+	memset(TxMessage.Payload, 0x00, WIMOD_HCI_MSG_PAYLOAD_SIZE);
+
+	switch (msg_id) {
+		case DEVMGMT_MSG_PING_REQ:
+		case DEVMGMT_MSG_GET_DEVICE_INFO_REQ:
+		case DEVMGMT_MSG_RESET_REQ:
+		case DEVMGMT_MSG_GET_FW_VERSION_REQ:
+		case DEVMGMT_MSG_GET_DEVICE_STATUS_REQ:
+		case DEVMGMT_MSG_GET_RTC_REQ:
+		case DEVMGMT_MSG_GET_RTC_ALARM_REQ:
+		case DEVMGMT_MSG_CLEAR_RTC_ALARM_REQ:
+		case DEVMGMT_MSG_GET_OPMODE_REQ:
+			TxMessage.Length = 0;
+			break;
+		case DEVMGMT_MSG_SET_RTC_REQ:
+		case DEVMGMT_MSG_SET_RTC_ALARM_REQ:
+			TxMessage.Length = 4;
+			break;
+		case DEVMGMT_MSG_RTC_ALARM_IND:
+		case DEVMGMT_MSG_SET_OPMODE_REQ:
+			TxMessage.Length = 1;
+			break;
+		default:
+			return DEVMGMT_STATUS_CMD_NOT_SUPPORTED;
+	}
+
+	if(TxMessage.Length > 0)
+		memcpy(TxMessage.Payload, val, TxMessage.Length);
+
+	return WiMOD_HCI_SendMessage(&TxMessage);
+}
+
+int WiMOD_LoRaWAN_Msg_Req(uint8_t msg_id, uint8_t* val, uint16_t len)
+{
+	TxMessage.SapID = LORAWAN_SAP_ID;
+	TxMessage.MsgID = msg_id;
+
+	memset(TxMessage.Payload, 0x00, WIMOD_HCI_MSG_PAYLOAD_SIZE);
+
+	switch (msg_id) {
+		case LORAWAN_MSG_ACTIVATE_DEVICE_REQ:
+			TxMessage.Length = 36;
+			break;
+		case LORAWAN_MSG_REACTIVATE_DEVICE_REQ:
+		case LORAWAN_MSG_JOIN_NETWORK_REQ:
+		case LORAWAN_MSG_GET_RSTACK_CONFIG_REQ:
+		case LORAWAN_MSG_GET_SUPPORTED_BANDS_REQ:
+		case LORAWAN_MSG_GET_DEVICE_EUI_REQ:
+		case LORAWAN_MSG_GET_CUSTOM_CFG_REQ:
+		case LORAWAN_MSG_GET_LINKADRREQ_CONFIG_REQ:
+		case LORAWAN_MSG_FACTORY_RESET_REQ:
+		case LORAWAN_MSG_DEACTIVATE_DEVICE_REQ:
+		case LORAWAN_MSG_GET_NWK_STATUS_REQ:
+			TxMessage.Length = 0;
+			break;
+		case LORAWAN_MSG_SET_CUSTOM_CFG_REQ:
+		case LORAWAN_MSG_SET_LINKADRREQ_CONFIG_REQ:
+			TxMessage.Length = 1;
+			break;
+		case LORAWAN_MSG_SET_JOIN_PARAM_REQ:
+			TxMessage.Length = 24;
+			break;
+		case LORAWAN_MSG_SEND_UDATA_REQ:
+		case LORAWAN_MSG_SEND_CDATA_REQ:
+		case LORAWAN_MSG_SEND_MAC_CMD_REQ:
+			TxMessage.Length = len;
+			break;
+		case LORAWAN_MSG_SET_RSTACK_CONFIG_REQ:
+			TxMessage.Length = 7;
+			break;
+		case LORAWAN_MSG_SET_DEVICE_EUI_REQ:
+			TxMessage.Length = 8;
+			break;
+		default:
+			return DEVMGMT_STATUS_CMD_NOT_SUPPORTED;
+	}
+
+	if(TxMessage.Length > 0)
+		memcpy(TxMessage.Payload, val, TxMessage.Length);
+
+	return WiMOD_HCI_SendMessage(&TxMessage);
+}
+
 //------------------------------------------------------------------------------
 //
 //  Ping
@@ -147,17 +258,10 @@ WiMOD_LoRaWAN_Init(
 //  @brief: ping device
 //
 //------------------------------------------------------------------------------
-
 int
 WiMOD_LoRaWAN_SendPing()
 {
-    // 1. init header
-    TxMessage.SapID     = DEVMGMT_SAP_ID;
-    TxMessage.MsgID     = DEVMGMT_MSG_PING_REQ;
-    TxMessage.Length    = 0;
-
-    // 2. send HCI message without payload
-    return WiMOD_HCI_SendMessage(&TxMessage);
+    return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_PING_REQ, NULL, 0);
 }
 
 //------------------------------------------------------------------------------
@@ -167,18 +271,51 @@ WiMOD_LoRaWAN_SendPing()
 //  @brief: get firmware version
 //
 //------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_GetDeviceInfo(void)
+{
+    return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_GET_DEVICE_INFO_REQ, NULL, 0);
+}
 
+//------------------------------------------------------------------------------
+//
+//  GetFirmwareVersion
+//
+//  @brief: get firmware version
+//
+//------------------------------------------------------------------------------
 int
 WiMOD_LoRaWAN_GetFirmwareVersion(void)
 {
-    // 1. init header
-    TxMessage.SapID     = DEVMGMT_SAP_ID;
-    TxMessage.MsgID     = DEVMGMT_MSG_GET_FW_VERSION_REQ;
-    TxMessage.Length    = 0;
-
-    // 2. send HCI message without payload
-    return WiMOD_HCI_SendMessage(&TxMessage);
+    return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_GET_FW_VERSION_REQ, NULL, 0);
 }
+
+//------------------------------------------------------------------------------
+//
+//  Reset
+//
+//  @brief: reset device
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_Reset(void)
+{
+    return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_RESET_REQ, NULL, 0);
+}
+
+//------------------------------------------------------------------------------
+//
+//  GetDeviceStatus
+//
+//  @brief: get device status
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_GetDeviceStatus(void)
+{
+    return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_GET_DEVICE_STATUS_REQ, NULL, 0);
+}
+
 
 //------------------------------------------------------------------------------
 //
@@ -191,13 +328,7 @@ WiMOD_LoRaWAN_GetFirmwareVersion(void)
 int
 WiMOD_LoRaWAN_JoinNetworkRequest(void)
 {
-    // 1. init header
-    TxMessage.SapID     = LORAWAN_SAP_ID;
-    TxMessage.MsgID     = LORAWAN_MSG_JOIN_NETWORK_REQ;
-    TxMessage.Length    = 0;
-
-    // 2. send HCI message with payload
-    return WiMOD_HCI_SendMessage(&TxMessage);
+    return WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_JOIN_NETWORK_REQ, NULL, 0);
 }
 
 //------------------------------------------------------------------------------
@@ -213,27 +344,23 @@ WiMOD_LoRaWAN_SendURadioData(UINT8  port,       // LoRaWAN Port
                              UINT8* srcData,    // application payload
                              int    srcLength)  // length of application payload
 {
-    // 1. check length
-    if (srcLength > (WIMOD_HCI_MSG_PAYLOAD_SIZE - 1))
-    {
-        // error
-        return -1;
-    }
+	uint8_t payload[WIMOD_HCI_MSG_PAYLOAD_SIZE] = { 0 };
 
-    // 2. init header
-    TxMessage.SapID     = LORAWAN_SAP_ID;
-    TxMessage.MsgID     = LORAWAN_MSG_SEND_UDATA_REQ;
-    TxMessage.Length    = 1 + srcLength;
+		// 1. check length
+	    if (srcLength > (WIMOD_HCI_MSG_PAYLOAD_SIZE - 1))
+	    {
+	        // overflow error
+	        return -1;
+	    }
 
-    // 3.  init payload
-    // 3.1 init port
-    TxMessage.Payload[0] = port;
+	    // 3.  init payload
+	    // 3.1 init port
+	    payload[0] = port;
 
-    // 3.2 init radio message payload
-    memcpy(&TxMessage.Payload[1], srcData, srcLength);
+	    // 3.2 init radio message payload
+	    memcpy(&payload[1], srcData, srcLength);
 
-    // 4. send HCI message with payload
-    return WiMOD_HCI_SendMessage(&TxMessage);
+	    return WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_SEND_UDATA_REQ, payload, 1 + srcLength);
 }
 
 //------------------------------------------------------------------------------
@@ -249,27 +376,24 @@ WiMOD_LoRaWAN_SendCRadioData(UINT8  port,       // LoRaWAN Port
                              UINT8* srcData,    // application data
                              int    srcLength)  // length of application data
 {
-    // 1. check length
+	uint8_t payload[WIMOD_HCI_MSG_PAYLOAD_SIZE] = { 0 };
+
+	// 1. check length
     if (srcLength > (WIMOD_HCI_MSG_PAYLOAD_SIZE - 1))
     {
-        // error
+        // overflow error
         return -1;
     }
 
-    // 2. init header
-    TxMessage.SapID     = LORAWAN_SAP_ID;
-    TxMessage.MsgID     = LORAWAN_MSG_SEND_CDATA_REQ;
-    TxMessage.Length    = 1 + srcLength;
-
     // 3.  init payload
     // 3.1 init port
-    TxMessage.Payload[0] = port;
+    payload[0] = port;
 
     // 3.2 init radio message payload
-    memcpy(&TxMessage.Payload[1], srcData, srcLength);
+    memcpy(&payload[1], srcData, srcLength);
 
-    // 4. send HCI message with payload
-    return WiMOD_HCI_SendMessage(&TxMessage);
+    return WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_SEND_CDATA_REQ, payload, 1 + srcLength);
+
 }
 
 //------------------------------------------------------------------------------
@@ -328,14 +452,145 @@ WiMOD_LoRaWAN_Process_DevMgmt_Message(TWiMOD_HCI_Message*  rxMessage)
         case    DEVMGMT_MSG_PING_RSP:
                 WiMOD_LoRaWAN_ShowResponse("ping response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
                 break;
-
+        case    DEVMGMT_MSG_GET_DEVICE_INFO_RSP:
+        		WiMOD_LoRaWAN_DevMgmt_DeviceInfo_Rsp(rxMessage);
+                break;
         case    DEVMGMT_MSG_GET_FW_VERSION_RSP:
-                WiMOD_LoRaWAN_DevMgmt_FirmwareVersion_Rsp(rxMessage);
-                break;
-
+				WiMOD_LoRaWAN_DevMgmt_FirmwareVersion_Rsp(rxMessage);
+				break;
+        case    DEVMGMT_MSG_RESET_RSP:
+				WiMOD_LoRaWAN_ShowResponse("reset response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+				break;
+        case    DEVMGMT_MSG_GET_DEVICE_STATUS_RSP:
+				WiMOD_LoRaWAN_DevMgmt_DeviceStatus_Rsp(rxMessage);
+				break;
         default:
-                printf("unhandled DeviceMgmt message received - MsgID : 0x%02X\n\r", (UINT8)rxMessage->MsgID);
+                printf("Unhandled DeviceMgmt message received - MsgID : 0x%02X\n\r", (UINT8)rxMessage->MsgID);
                 break;
+    }
+}
+
+static void
+WiMOD_LoRaWAN_DevMgmt_DeviceStatus_Rsp(TWiMOD_HCI_Message* rxMessage)
+{
+	char help[5];
+
+	WiMOD_LoRaWAN_ShowResponse("device status response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+
+	if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
+	{
+		USART_Transmit(&hlpuart1, "System Tick Resolution: ");
+		USART_Transmit(&hlpuart1, (const char* ) rxMessage->Payload[1]);
+		USART_Transmit(&hlpuart1, " ms\n\r");
+
+		memcpy(help, &rxMessage->Payload[2], 4);
+
+		USART_Transmit(&hlpuart1, "System Tick: ");
+		USART_Transmit(&hlpuart1, (const char* ) (uint32_t)help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy(help, &rxMessage->Payload[6], 4);
+		USART_Transmit(&hlpuart1, "Target Time: ");
+		USART_Transmit(&hlpuart1, (const char* ) (uint32_t)help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy(help, &rxMessage->Payload[10], 2);
+		USART_Transmit(&hlpuart1, "NVM Status: ");
+		USART_Transmit(&hlpuart1, (const char* ) (uint16_t)help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy(help, &rxMessage->Payload[12], 2);
+		USART_Transmit(&hlpuart1, "Battery level: ");
+		USART_Transmit(&hlpuart1, (const char* ) (uint16_t)help);
+		USART_Transmit(&hlpuart1, "mV\n\r");
+
+		memcpy(help, &rxMessage->Payload[16], 4);
+		USART_Transmit(&hlpuart1, "TX U-Data: ");
+		USART_Transmit(&hlpuart1, (const char* ) (uint32_t)help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy(help, &rxMessage->Payload[20], 4);
+		USART_Transmit(&hlpuart1, "TX C-Data: ");
+		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy(help, &rxMessage->Payload[24], 4);
+		USART_Transmit(&hlpuart1, "TX Error: ");
+		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy(help, &rxMessage->Payload[28], 4);
+		USART_Transmit(&hlpuart1, "RX1 U-Data: ");
+		USART_Transmit(&hlpuart1, (const char* ) (uint32_t)help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy(help, &rxMessage->Payload[32], 4);
+		USART_Transmit(&hlpuart1, "RX1 C-Data: ");
+		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy(help, &rxMessage->Payload[36], 4);
+		USART_Transmit(&hlpuart1, "RX1 MIC-Error: ");
+		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy(help, &rxMessage->Payload[40], 4);
+		USART_Transmit(&hlpuart1, "RX2 U-Data: ");
+		USART_Transmit(&hlpuart1, (const char* ) (uint32_t)help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy(help, &rxMessage->Payload[44], 4);
+		USART_Transmit(&hlpuart1, "RX2 C-Data: ");
+		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy(help, &rxMessage->Payload[48], 4);
+		USART_Transmit(&hlpuart1, "RX2 MIC-Error: ");
+		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy(help, &rxMessage->Payload[52], 4);
+		USART_Transmit(&hlpuart1, "TX Join: ");
+		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy(help, &rxMessage->Payload[56], 4);
+		USART_Transmit(&hlpuart1, "RX Accept: ");
+		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+	}
+}
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_DevMgmt_DeviceInfo_Rsp
+//
+//  @brief: show device information
+//
+//------------------------------------------------------------------------------
+
+static void
+WiMOD_LoRaWAN_DevMgmt_DeviceInfo_Rsp(TWiMOD_HCI_Message*  rxMessage)
+{
+    char help[5];
+
+    WiMOD_LoRaWAN_ShowResponse("device information response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+
+    if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
+    {
+    	WiMOD_LoRaWAN_ShowResponse("Module type", WiMOD_DeviceMgmt_ModuleTypes, rxMessage->Payload[1]);
+
+        memcpy(help, &rxMessage->Payload[2], 4);
+
+        USART_Transmit(&hlpuart1, "Device address: 0x");
+        USART_Transmit(&hlpuart1, (const char* ) num2hex((uint32_t)help, WORD_F));
+        USART_Transmit(&hlpuart1, "\n\r");
+
+        memcpy(help, &rxMessage->Payload[6], 4);
+        USART_Transmit(&hlpuart1, "Device ID: 0x");
+		USART_Transmit(&hlpuart1, (const char* ) num2hex((uint32_t)help, WORD_F));
+		USART_Transmit(&hlpuart1, "\n\r");
     }
 }
 
@@ -356,8 +611,9 @@ WiMOD_LoRaWAN_DevMgmt_FirmwareVersion_Rsp(TWiMOD_HCI_Message*  rxMessage)
 
     if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
     {
-        printf("version: V%d.%d\n\r", (int)rxMessage->Payload[2], (int)rxMessage->Payload[1]);
-        printf("build-count: %d\n\r", (int)MAKEWORD(rxMessage->Payload[3], rxMessage->Payload[4]));
+
+    	printf("version: V%d.%d\n\r", (int)rxMessage->Payload[2], (int)rxMessage->Payload[1]);
+		printf("build-count: %d\n\r", (int)MAKEWORD(rxMessage->Payload[3], rxMessage->Payload[4]));
 
         memcpy(help, &rxMessage->Payload[5], 10);
         help[10] = 0;
@@ -415,11 +671,13 @@ WiMOD_LoRaWAN_Process_LoRaWAN_Message(TWiMOD_HCI_Message*  rxMessage)
                 break;
 
         case    LORAWAN_MSG_RECV_NODATA_IND:
-                printf("no data received indication\n\r");
+                USART_Transmit(&hlpuart1, "no data received indication\n\r");
                 break;
 
         default:
-                printf("unhandled LoRaWAN SAP message received - MsgID : 0x%02X\n\r", (UINT8)rxMessage->MsgID);
+        		USART_Transmit(&hlpuart1, "Unhandled LoRaWAN SAP message received - MsgID : 0x");
+        		USART_Transmit(&hlpuart1, num2hex(rxMessage->MsgID, BYTE_F));
+        		USART_Transmit(&hlpuart1, "\n\r");
                 break;
     }
 }
@@ -588,10 +846,12 @@ WiMOD_LoRaWAN_ShowResponse(const char* string, const TIDString* statusTable, UIN
     {
         if (statusTable->ID == statusID)
         {
-            printf(string);
-            printf(" - Status(0x%02X) : ", statusID);
-            printf(statusTable->String);
-            printf("\n\r");
+            USART_Transmit(&hlpuart1, string);
+            USART_Transmit(&hlpuart1, " - Status(0x");
+			USART_Transmit(&hlpuart1, (const char* ) num2hex(statusID, BYTE_F));
+			USART_Transmit(&hlpuart1, ")");
+            USART_Transmit(&hlpuart1, statusTable->String);
+            USART_Transmit(&hlpuart1, "\n\r");
             return;
         }
 

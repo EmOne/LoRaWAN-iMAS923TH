@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
+
 #ifdef  Q_OS_WIN
 
 #include <windows.h>
@@ -25,6 +27,19 @@
 
 typedef uint8_t             UINT8;
 typedef uint32_t            UINT32;
+
+#define USARTTEXTSTRINGSIZE  64 //!< Max number of characters can be entered from the PC.
+
+/**
+  * @brief The hexdecimal format to be used
+  */
+typedef enum
+{
+  HALFBYTE_F,     //!< 1 hex digit
+  BYTE_F,         //!< 2 hex digits
+  WORD_F,         //!< 4 hex digits
+  DOUBLEWORD_F    //!< 8 hex digits
+} eHexFormat;
 
 // open serial device
 bool
@@ -56,5 +71,19 @@ int
 SerialDevice_ReadData(UINT8*    rxBuffer,
                       int       rxBufferSize);
 
+void USART_ShowMenu(
+#ifdef Q_OS_WIN
+		const char*
+#else
+		void
+#endif
+		);
+void USART_TxWelcomeMessage(void);
+void USART_Transmit_Data(UART_HandleTypeDef* huart, uint8_t* data);
+void USART_Transmit(UART_HandleTypeDef* huart, const char* TextString);
+void USART_CheckAppCmd(void);
+void USART_ITCharManager(UART_HandleTypeDef* huart);
+void num2str(uint32_t nbr, uint8_t *str);
+uint8_t* num2hex(uint32_t num, eHexFormat HexFormat);
 
 #endif // SERIAL_DEVICE_H

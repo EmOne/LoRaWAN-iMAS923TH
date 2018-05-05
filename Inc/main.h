@@ -64,10 +64,10 @@
 #define B1_EXTI_IRQn EXTI15_10_IRQn
 #define LD3_Pin GPIO_PIN_14
 #define LD3_GPIO_Port GPIOB
-#define STLK_RX_Pin GPIO_PIN_8
-#define STLK_RX_GPIO_Port GPIOD
-#define STLK_TX_Pin GPIO_PIN_9
-#define STLK_TX_GPIO_Port GPIOD
+#define LORA_RXD_Pin GPIO_PIN_8
+#define LORA_RXD_GPIO_Port GPIOD
+#define LORA_TXD_Pin GPIO_PIN_9
+#define LORA_TXD_GPIO_Port GPIOD
 #define USB_PowerSwitchOn_Pin GPIO_PIN_5
 #define USB_PowerSwitchOn_GPIO_Port GPIOG
 #define USB_OverCurrent_Pin GPIO_PIN_6
@@ -76,6 +76,8 @@
 #define STLINK_TX_GPIO_Port GPIOG
 #define STLINK_RX_Pin GPIO_PIN_8
 #define STLINK_RX_GPIO_Port GPIOG
+#define LD1_Pin GPIO_PIN_7
+#define LD1_GPIO_Port GPIOC
 #define USB_SOF_Pin GPIO_PIN_8
 #define USB_SOF_GPIO_Port GPIOA
 #define USB_VBUS_Pin GPIO_PIN_9
@@ -100,7 +102,7 @@
   * @brief Uncomment the line below to expanse the "assert_param" macro in the 
   *        HAL drivers code
   */
-/* #define USE_FULL_ASSERT    1U */
+ #define USE_FULL_ASSERT    1U 
 
 /* USER CODE BEGIN Private defines */
 
