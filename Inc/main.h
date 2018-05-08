@@ -68,6 +68,8 @@
 #define LORA_RXD_GPIO_Port GPIOD
 #define LORA_TXD_Pin GPIO_PIN_9
 #define LORA_TXD_GPIO_Port GPIOD
+#define SPI1_NSS_Pin GPIO_PIN_14
+#define SPI1_NSS_GPIO_Port GPIOD
 #define USB_PowerSwitchOn_Pin GPIO_PIN_5
 #define USB_PowerSwitchOn_GPIO_Port GPIOG
 #define USB_OverCurrent_Pin GPIO_PIN_6

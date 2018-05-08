@@ -52,6 +52,7 @@
 #include "adc.h"
 #include "i2c.h"
 #include "usart.h"
+#include "spi.h"
 #include "usb_device.h"
 #include "gpio.h"
 
@@ -113,7 +114,7 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_I2C1_Init();
   MX_ADC1_Init();
-
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
   if(!WiMOD_LoRaWAN_Init(&huart3))
@@ -134,8 +135,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-		// handle receiver process
-		WiMOD_LoRaWAN_Process();
+	  // handle receiver process
+	  WiMOD_LoRaWAN_Process();
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */

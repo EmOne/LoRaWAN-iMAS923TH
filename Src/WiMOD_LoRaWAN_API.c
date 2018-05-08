@@ -473,90 +473,121 @@ WiMOD_LoRaWAN_Process_DevMgmt_Message(TWiMOD_HCI_Message*  rxMessage)
 static void
 WiMOD_LoRaWAN_DevMgmt_DeviceStatus_Rsp(TWiMOD_HCI_Message* rxMessage)
 {
-	char help[5];
-
+	uint8_t str[8] = {0};
+	uint32_t help;
 	WiMOD_LoRaWAN_ShowResponse("device status response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
 
 	if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
 	{
+		memcpy((uint8_t *) &help, &rxMessage->Payload[1], 1);
+		num2str(help & 0xFF, str);
 		USART_Transmit(&hlpuart1, "System Tick Resolution: ");
-		USART_Transmit(&hlpuart1, (const char* ) rxMessage->Payload[1]);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, " ms\n\r");
 
-		memcpy(help, &rxMessage->Payload[2], 4);
-
+		memcpy((uint8_t *) &help, &rxMessage->Payload[2], 4);
+		num2str(help, str);
 		USART_Transmit(&hlpuart1, "System Tick: ");
-		USART_Transmit(&hlpuart1, (const char* ) (uint32_t)help);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, "\n\r");
 
-		memcpy(help, &rxMessage->Payload[6], 4);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[6], 4);
 		USART_Transmit(&hlpuart1, "Target Time: ");
-		USART_Transmit(&hlpuart1, (const char* ) (uint32_t)help);
-		USART_Transmit(&hlpuart1, "\n\r");
+		num2str(((help & 0xfc000000) >> 26) + 2000, str); //Year
+		USART_Transmit(&hlpuart1, (const char* ) str);
+		USART_Transmit(&hlpuart1, "-");
+		num2str(((help & 0xf000) >> 12), str);	//Months
+		USART_Transmit(&hlpuart1, (const char* ) str);
+		USART_Transmit(&hlpuart1, "-");
+		num2str(((help & 0x3e00000) >> 21), str);	//Day
+		USART_Transmit(&hlpuart1, (const char* ) str);
+		USART_Transmit(&hlpuart1, " [");
+		num2str(((help & 0x1f0000) >> 16), str);	//Hour
+		USART_Transmit(&hlpuart1, (const char* ) str);
+		USART_Transmit(&hlpuart1, ":");
+		num2str(((help & 0xfc0) >> 6), str);	//Minutes
+		USART_Transmit(&hlpuart1, (const char* ) str);
+		USART_Transmit(&hlpuart1, ":");
+		num2str(((help & 0x3f)), str);	//Seconds
+		USART_Transmit(&hlpuart1, (const char* ) str);
+		USART_Transmit(&hlpuart1, "]\n\r");
 
-		memcpy(help, &rxMessage->Payload[10], 2);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[10], 2);
+		num2str(help & 0xFFFF, str);
 		USART_Transmit(&hlpuart1, "NVM Status: ");
-		USART_Transmit(&hlpuart1, (const char* ) (uint16_t)help);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, "\n\r");
 
-		memcpy(help, &rxMessage->Payload[12], 2);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[12], 2);
+		num2str(help & 0xFFFF, str);
 		USART_Transmit(&hlpuart1, "Battery level: ");
-		USART_Transmit(&hlpuart1, (const char* ) (uint16_t)help);
-		USART_Transmit(&hlpuart1, "mV\n\r");
+		USART_Transmit(&hlpuart1, (const char* ) str);
+		USART_Transmit(&hlpuart1, " mV\n\r");
 
-		memcpy(help, &rxMessage->Payload[16], 4);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[16], 4);
+		num2str(help, str);
 		USART_Transmit(&hlpuart1, "TX U-Data: ");
-		USART_Transmit(&hlpuart1, (const char* ) (uint32_t)help);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, "\n\r");
 
-		memcpy(help, &rxMessage->Payload[20], 4);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[20], 4);
+		num2str(help, str);
 		USART_Transmit(&hlpuart1, "TX C-Data: ");
-		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, "\n\r");
 
-		memcpy(help, &rxMessage->Payload[24], 4);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[24], 4);
+		num2str(help, str);
 		USART_Transmit(&hlpuart1, "TX Error: ");
-		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, "\n\r");
 
-		memcpy(help, &rxMessage->Payload[28], 4);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[28], 4);
+		num2str(help, str);
 		USART_Transmit(&hlpuart1, "RX1 U-Data: ");
-		USART_Transmit(&hlpuart1, (const char* ) (uint32_t)help);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, "\n\r");
 
-		memcpy(help, &rxMessage->Payload[32], 4);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[32], 4);
+		num2str(help, str);
 		USART_Transmit(&hlpuart1, "RX1 C-Data: ");
-		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, "\n\r");
 
-		memcpy(help, &rxMessage->Payload[36], 4);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[36], 4);
+		num2str(help, str);
 		USART_Transmit(&hlpuart1, "RX1 MIC-Error: ");
-		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, "\n\r");
 
-		memcpy(help, &rxMessage->Payload[40], 4);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[40], 4);
+		num2str(help, str);
 		USART_Transmit(&hlpuart1, "RX2 U-Data: ");
-		USART_Transmit(&hlpuart1, (const char* ) (uint32_t)help);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, "\n\r");
 
-		memcpy(help, &rxMessage->Payload[44], 4);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[44], 4);
+		num2str(help, str);
 		USART_Transmit(&hlpuart1, "RX2 C-Data: ");
-		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, "\n\r");
 
-		memcpy(help, &rxMessage->Payload[48], 4);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[48], 4);
+		num2str(help, str);
 		USART_Transmit(&hlpuart1, "RX2 MIC-Error: ");
-		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, "\n\r");
 
-		memcpy(help, &rxMessage->Payload[52], 4);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[52], 4);
+		num2str(help, str);
 		USART_Transmit(&hlpuart1, "TX Join: ");
-		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, "\n\r");
 
-		memcpy(help, &rxMessage->Payload[56], 4);
+		memcpy((uint8_t *) &help, &rxMessage->Payload[56], 4);
+		num2str(help, str);
 		USART_Transmit(&hlpuart1, "RX Accept: ");
-		USART_Transmit(&hlpuart1, (const char*) (uint32_t) help);
+		USART_Transmit(&hlpuart1, (const char* ) str);
 		USART_Transmit(&hlpuart1, "\n\r");
 
 	}
@@ -573,23 +604,22 @@ WiMOD_LoRaWAN_DevMgmt_DeviceStatus_Rsp(TWiMOD_HCI_Message* rxMessage)
 static void
 WiMOD_LoRaWAN_DevMgmt_DeviceInfo_Rsp(TWiMOD_HCI_Message*  rxMessage)
 {
-    char help[5];
-
+    uint32_t help;
     WiMOD_LoRaWAN_ShowResponse("device information response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
 
     if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
     {
     	WiMOD_LoRaWAN_ShowResponse("Module type", WiMOD_DeviceMgmt_ModuleTypes, rxMessage->Payload[1]);
 
-        memcpy(help, &rxMessage->Payload[2], 4);
+        memcpy((uint8_t *) &help, &rxMessage->Payload[2], 4);
 
         USART_Transmit(&hlpuart1, "Device address: 0x");
-        USART_Transmit(&hlpuart1, (const char* ) num2hex((uint32_t)help, WORD_F));
+        USART_Transmit(&hlpuart1, (const char* ) num2hex((uint32_t)help, DOUBLEWORD_F));
         USART_Transmit(&hlpuart1, "\n\r");
 
-        memcpy(help, &rxMessage->Payload[6], 4);
+        memcpy((uint8_t *) &help, &rxMessage->Payload[6], 4);
         USART_Transmit(&hlpuart1, "Device ID: 0x");
-		USART_Transmit(&hlpuart1, (const char* ) num2hex((uint32_t)help, WORD_F));
+		USART_Transmit(&hlpuart1, (const char* ) num2hex((uint32_t)help, DOUBLEWORD_F));
 		USART_Transmit(&hlpuart1, "\n\r");
     }
 }

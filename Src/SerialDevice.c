@@ -322,7 +322,7 @@ SerialDevice_ReadData(UINT8* rxBuffer, int rxBufferSize)
     }
 #else
     // Todo : add your own platform specific code here
-    if(HAL_UART_Receive(&huart3, rxBuffer, rxBufferSize, 1000) != HAL_ERROR)
+    if(HAL_UART_Receive(&huart3, rxBuffer, rxBufferSize, 500) != HAL_ERROR)
     {
     	return huart3.RxXferSize - huart3.RxXferCount;
     }
