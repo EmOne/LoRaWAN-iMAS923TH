@@ -11,6 +11,7 @@
 //	Disclaimer:	This example code is provided by IMST GmbH on an "AS IS"
 //              basis without any warranties.
 //
+//	Maintain by : Anol Paisal <anol.paisal@emone.co.th> @ 2018
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------

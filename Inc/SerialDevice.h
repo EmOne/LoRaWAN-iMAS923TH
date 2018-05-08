@@ -1,9 +1,33 @@
+//------------------------------------------------------------------------------
+//
+//	File:		SerialDevice.h
+//
+//	Abstract:	Serial Device Abstraction
+//
+//	Version:	0.1
+//
+//	Date:		18.05.2016
+//
+//	Disclaimer:	This example code is provided by IMST GmbH on an "AS IS" basis
+//				without any warranties.
+//
+//	Maintain by : Anol Paisal <anol.paisal@emone.co.th> @ 2018
+//
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+//
+//  Include Files
+//
+//------------------------------------------------------------------------------
+
 #ifndef SERIAL_DEVICE_H
 #define SERIAL_DEVICE_H
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 
 #ifdef  Q_OS_WIN
 

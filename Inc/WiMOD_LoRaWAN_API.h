@@ -11,6 +11,7 @@
 //	Disclaimer:	This example code is provided by IMST GmbH on an "AS IS"
 //              basis without any warranties.
 //
+//	Maintain by : Anol Paisal <anol.paisal@emone.co.th>
 //------------------------------------------------------------------------------
 
 #ifndef WIMOD_LORAWAN_API_H
@@ -201,7 +202,20 @@ WiMOD_LoRaWAN_Init(
 int WiMOD_DevMgmt_Msg_Req(uint8_t msg_id, uint8_t* val, uint16_t len);
 int WiMOD_LoRaWAN_Msg_Req(uint8_t msg_id, uint8_t* val, uint16_t len);
 
-
+int
+WiMOD_LoRaWAN_SetOPMODE(uint8_t val);
+//get OPMODE
+int
+WiMOD_LoRaWAN_GetOPMODE(void);
+// clear RTC alarm
+int
+WiMOD_LoRaWAN_ClearRTCAlarm(void);
+// get RTC alarm
+int
+WiMOD_LoRaWAN_GetRTCAlarm(void);
+// get RTC
+int
+WiMOD_LoRaWAN_GetRTC(void);
 // ping device
 int
 WiMOD_LoRaWAN_SendPing(void);

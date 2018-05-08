@@ -11,6 +11,7 @@
 //	Disclaimer:	This example code is provided by IMST GmbH on an "AS IS" basis
 //				without any warranties.
 //
+//	Maintain by : Anol Paisal <anol.paisal@emone.co.th> @ 2018
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
@@ -40,6 +41,15 @@ WiMOD_LoRaWAN_Process_RxMessage(TWiMOD_HCI_Message*  rxMessage);
 
 static void
 WiMOD_LoRaWAN_Process_DevMgmt_Message(TWiMOD_HCI_Message*  rxMessage);
+
+static void
+WiMOD_LoRaWAN_DevMgmt_Get_OPMODE_Rsp(TWiMOD_HCI_Message* rxMessage);
+
+static void
+WiMOD_LoRaWAN_DevMgmt_Get_RTC_ALARM_Rsp(TWiMOD_HCI_Message* rxMessage);
+
+static void
+WiMOD_LoRaWAN_DevMgmt_Get_RTC_Rsp(TWiMOD_HCI_Message* rxMessage);
 
 static void
 WiMOD_LoRaWAN_DevMgmt_DeviceStatus_Rsp(TWiMOD_HCI_Message* rxMessage);
@@ -186,7 +196,6 @@ int WiMOD_DevMgmt_Msg_Req(uint8_t msg_id, uint8_t* val, uint16_t len)
 		case DEVMGMT_MSG_SET_RTC_ALARM_REQ:
 			TxMessage.Length = 4;
 			break;
-		case DEVMGMT_MSG_RTC_ALARM_IND:
 		case DEVMGMT_MSG_SET_OPMODE_REQ:
 			TxMessage.Length = 1;
 			break;
@@ -251,9 +260,78 @@ int WiMOD_LoRaWAN_Msg_Req(uint8_t msg_id, uint8_t* val, uint16_t len)
 	return WiMOD_HCI_SendMessage(&TxMessage);
 }
 
+
 //------------------------------------------------------------------------------
 //
-//  Ping
+//  SetOPMODE
+//
+//  @brief: set OPMODE
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_SetOPMODE(uint8_t val)
+{
+	if (val > 1) {
+		return -1;
+	}
+	return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_SET_OPMODE_REQ, &val, 1);
+}
+
+//------------------------------------------------------------------------------
+//
+//  GetOPMODE
+//
+//  @brief: get OPMODE
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_GetOPMODE()
+{
+	return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_GET_OPMODE_REQ, NULL, 0);
+}
+
+//------------------------------------------------------------------------------
+//
+//  ClearRTCAlarm
+//
+//  @brief: clear RTC Alarm
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_ClearRTCAlarm()
+{
+	return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_CLEAR_RTC_ALARM_REQ, NULL, 0);
+}
+
+//------------------------------------------------------------------------------
+//
+//  GetRTCAlarm
+//
+//  @brief: get RTC Alarm
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_GetRTCAlarm()
+{
+    return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_GET_RTC_ALARM_REQ, NULL, 0);
+}
+
+//------------------------------------------------------------------------------
+//
+//  GetRTC
+//
+//  @brief: get RTC
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_GetRTC()
+{
+    return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_GET_RTC_REQ, NULL, 0);
+}
+
+//------------------------------------------------------------------------------
+//
+//  SendPing
 //
 //  @brief: ping device
 //
@@ -266,9 +344,9 @@ WiMOD_LoRaWAN_SendPing()
 
 //------------------------------------------------------------------------------
 //
-//  GetFirmwareVersion
+//  GetDeviceInfo
 //
-//  @brief: get firmware version
+//  @brief: get device information
 //
 //------------------------------------------------------------------------------
 int
@@ -464,12 +542,134 @@ WiMOD_LoRaWAN_Process_DevMgmt_Message(TWiMOD_HCI_Message*  rxMessage)
         case    DEVMGMT_MSG_GET_DEVICE_STATUS_RSP:
 				WiMOD_LoRaWAN_DevMgmt_DeviceStatus_Rsp(rxMessage);
 				break;
-        default:
+        case    DEVMGMT_MSG_GET_RTC_RSP:
+        		WiMOD_LoRaWAN_DevMgmt_Get_RTC_Rsp(rxMessage);
+				break;
+        case    DEVMGMT_MSG_SET_RTC_RSP:
+				WiMOD_LoRaWAN_ShowResponse("set RTC response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+				break;
+        case    DEVMGMT_MSG_GET_RTC_ALARM_RSP:
+				WiMOD_LoRaWAN_DevMgmt_Get_RTC_ALARM_Rsp(rxMessage);
+				break;
+		case    DEVMGMT_MSG_SET_RTC_ALARM_RSP:
+				WiMOD_LoRaWAN_ShowResponse("set RTC Alarm response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+				break;
+		case    DEVMGMT_MSG_CLEAR_RTC_ALARM_RSP:
+				WiMOD_LoRaWAN_ShowResponse("clear RTC Alarm response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+				break;
+		case    DEVMGMT_MSG_GET_OPMODE_RSP:
+				WiMOD_LoRaWAN_DevMgmt_Get_OPMODE_Rsp(rxMessage);
+				break;
+
+		default:
                 printf("Unhandled DeviceMgmt message received - MsgID : 0x%02X\n\r", (UINT8)rxMessage->MsgID);
                 break;
     }
 }
 
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_DevMgmt_Get_OPMODE_Rsp
+//
+//  @brief: Get OPMODE
+//
+//------------------------------------------------------------------------------
+static void
+WiMOD_LoRaWAN_DevMgmt_Get_OPMODE_Rsp(TWiMOD_HCI_Message* rxMessage)
+{
+	WiMOD_LoRaWAN_ShowResponse("get OPMODE response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+
+	if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
+	{
+		USART_Transmit(&hlpuart1, "OPMODE Set: 0x");
+		USART_Transmit(&hlpuart1, (const char*) num2hex((uint32_t)rxMessage->Payload[1], BYTE_F));
+		USART_Transmit(&hlpuart1, "\n\r");
+	}
+}
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_DevMgmt_Get_RTC_ALARM_Rsp
+//
+//  @brief: Get RTC alarm
+//
+//------------------------------------------------------------------------------
+static void
+WiMOD_LoRaWAN_DevMgmt_Get_RTC_ALARM_Rsp(TWiMOD_HCI_Message* rxMessage)
+{
+	uint8_t str[8] = {0};
+	uint32_t help;
+	WiMOD_LoRaWAN_ShowResponse("get RTC ALARM response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+
+	if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
+	{
+		USART_Transmit(&hlpuart1, "RTC ALARM Set: 0x");
+		USART_Transmit(&hlpuart1, (const char*) num2hex((uint32_t)rxMessage->Payload[1], BYTE_F));
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		USART_Transmit(&hlpuart1, "RTC ALARM Daily: 0x");
+		USART_Transmit(&hlpuart1, (const char*) num2hex((uint32_t)rxMessage->Payload[2], BYTE_F));
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		memcpy((uint8_t *) &help, &rxMessage->Payload[3], 3);
+		num2str((help & 0xFF0000) >> 16, str);	//Hour
+		USART_Transmit(&hlpuart1, "RTC ALARM Time: [");
+		USART_Transmit(&hlpuart1, (const char*) str);
+		USART_Transmit(&hlpuart1, ":");
+		num2str((help & 0xFF00) >> 8, str);	//Minute
+		USART_Transmit(&hlpuart1, (const char*) str);
+		USART_Transmit(&hlpuart1, ":");
+		num2str((help & 0xFF), str);	//Second
+		USART_Transmit(&hlpuart1, (const char*) str);
+		USART_Transmit(&hlpuart1, "]\n\r");
+	}
+}
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_DevMgmt_Get_RTC_Rsp
+//
+//  @brief: Get RTC
+//
+//------------------------------------------------------------------------------
+static void
+WiMOD_LoRaWAN_DevMgmt_Get_RTC_Rsp(TWiMOD_HCI_Message* rxMessage)
+{
+	uint8_t str[8] = {0};
+	uint32_t help;
+	WiMOD_LoRaWAN_ShowResponse("get RTC response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+
+	if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
+	{
+		memcpy((uint8_t *) &help, &rxMessage->Payload[1], 4);
+		USART_Transmit(&hlpuart1, "RTC Time: ");
+		num2str(((help & 0xfc000000) >> 26) + 2000, str); //Year
+		USART_Transmit(&hlpuart1, (const char*) str);
+		USART_Transmit(&hlpuart1, "-");
+		num2str(((help & 0xf000) >> 12), str);	//Months
+		USART_Transmit(&hlpuart1, (const char*) str);
+		USART_Transmit(&hlpuart1, "-");
+		num2str(((help & 0x3e00000) >> 21), str);	//Day
+		USART_Transmit(&hlpuart1, (const char*) str);
+		USART_Transmit(&hlpuart1, " [");
+		num2str(((help & 0x1f0000) >> 16), str);	//Hour
+		USART_Transmit(&hlpuart1, (const char*) str);
+		USART_Transmit(&hlpuart1, ":");
+		num2str(((help & 0xfc0) >> 6), str);	//Minutes
+		USART_Transmit(&hlpuart1, (const char*) str);
+		USART_Transmit(&hlpuart1, ":");
+		num2str(((help & 0x3f)), str);	//Seconds
+		USART_Transmit(&hlpuart1, (const char*) str);
+		USART_Transmit(&hlpuart1, "]\n\r");
+	}
+}
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_DevMgmt_DeviceStatus_Rsp
+//
+//  @brief: show device status
+//
+//------------------------------------------------------------------------------
 static void
 WiMOD_LoRaWAN_DevMgmt_DeviceStatus_Rsp(TWiMOD_HCI_Message* rxMessage)
 {
@@ -604,7 +804,8 @@ WiMOD_LoRaWAN_DevMgmt_DeviceStatus_Rsp(TWiMOD_HCI_Message* rxMessage)
 static void
 WiMOD_LoRaWAN_DevMgmt_DeviceInfo_Rsp(TWiMOD_HCI_Message*  rxMessage)
 {
-    uint32_t help;
+	uint8_t str[8] = {0};
+	uint32_t help;
     WiMOD_LoRaWAN_ShowResponse("device information response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
 
     if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
@@ -620,7 +821,10 @@ WiMOD_LoRaWAN_DevMgmt_DeviceInfo_Rsp(TWiMOD_HCI_Message*  rxMessage)
         memcpy((uint8_t *) &help, &rxMessage->Payload[6], 4);
         USART_Transmit(&hlpuart1, "Device ID: 0x");
 		USART_Transmit(&hlpuart1, (const char* ) num2hex((uint32_t)help, DOUBLEWORD_F));
-		USART_Transmit(&hlpuart1, "\n\r");
+		USART_Transmit(&hlpuart1, "(");
+		num2str(help, str);
+		USART_Transmit(&hlpuart1, (const char* ) str);
+		USART_Transmit(&hlpuart1, ")\n\r");
     }
 }
 

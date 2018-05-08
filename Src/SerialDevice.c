@@ -11,6 +11,8 @@
 //	Disclaimer:	This example code is provided by IMST GmbH on an "AS IS" basis
 //				without any warranties.
 //
+//	Maintain by : Anol Paisal <anol.paisal@emone.co.th> @ 2018
+//
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
@@ -37,6 +39,15 @@ static HANDLE   ComHandle = INVALID_HANDLE_VALUE;
 // Todo : add your own platform specific variables here
 // forward declarations
 static void     Ping(void);
+static void		ActivateABP(void);
+static void		ReactivateABP(void);
+static void 	SetDevEUI(void);
+static void 	GetOPMODE(void);
+static void 	SetOPMODE(void);
+static void 	ClearOPMODE(void);
+static void     ClearRTCAlarm(void);
+static void     GetRTC(void);
+static void     GetAlarm(void);
 static void     GetFirmwareVersion(void);
 static void     GetDeviceInfo(void);
 static void     GetDeviceStatus(void);
@@ -370,84 +381,7 @@ void USART_Transmit_Data(UART_HandleTypeDef* huart, uint8_t* TextString) {
 	/* Use the HAL function to send the text string via USART */
 	HAL_UART_Transmit(huart, TextString, TextStringLength, HAL_MAX_DELAY);
 }
-/**
- * @brief  Check if any Application Command for L6470 has been entered by USART
- *         so to proceed to decode and perform the command.
- */
-void USART_CheckAppCmd(void)
-{
-	/* Checks the UART2 is in idle state */
-	if (hlpuart1.gState == HAL_UART_STATE_READY) {
 
-		/* Checks one character has been at least entered */
-		if (strchr((char *) UsartTextString, '\r') != NULL) {
-			/* Decode the entered command string */
-			strtok((char *) UsartTextString, "\r");
-//			USART_DecodeTextString(UsartTextString, L6470_TextCommandBundle,
-//					(uint8_t*) L6470_DaisyChainSpiTxStruct,
-//					(uint8_t*) L6470_DaisyChainSpiRxStruct);
-
-			// handle commands
-			switch (UsartTextString[0]) {
-	//		case 'e':
-	//		case 'x':
-	//			run = false;
-	//			break;
-			case 's':
-				// reset device
-				GetDeviceStatus();
-				break;
-			case 'r':
-				// reset device
-				Reset();
-				break;
-			case 'f':
-				// get firmware version
-				GetFirmwareVersion();
-				break;
-
-			case 'i':
-				// get device info
-				GetDeviceInfo();
-				break;
-
-			case 'p':
-				// ping device
-				Ping();
-				break;
-
-			case 'j':
-				// join network
-				Join();
-				break;
-
-			case 'u':
-				// send u-data
-				SendUData();
-				break;
-
-			case 'c':
-				// send c-data
-				SendCData();
-				break;
-
-			case ' ':
-				USART_ShowMenu(
-	#ifdef Q_OS_WIN
-						comPort
-	#endif
-						);
-				break;
-			}
-
-			HAL_UART_Abort(&hlpuart1);
-			memset(&UsartTextString, 0x0, sizeof(UsartTextString));
-		}
-
-		/* Prepare to receive a text string via USART with UART_IT_RXNE */
-		HAL_UART_Receive_IT(&hlpuart1, UsartTextString, USARTTEXTSTRINGSIZE);
-	}
-}
 
 /**
  * @brief  Handle text character just received.
@@ -608,6 +542,124 @@ uint8_t* num2hex(uint32_t num, eHexFormat HexFormat) {
 	return HexValue;
 }
 
+/**
+ * @brief  Check if any Application Command for L6470 has been entered by USART
+ *         so to proceed to decode and perform the command.
+ */
+void USART_CheckAppCmd(void)
+{
+	/* Checks the UART2 is in idle state */
+	if (hlpuart1.gState == HAL_UART_STATE_READY) {
+
+		/* Checks one character has been at least entered */
+		if (strchr((char *) UsartTextString, '\r') != NULL) {
+			/* Decode the entered command string */
+			strtok((char *) UsartTextString, "\r");
+//			USART_DecodeTextString(UsartTextString, L6470_TextCommandBundle,
+//					(uint8_t*) L6470_DaisyChainSpiTxStruct,
+//					(uint8_t*) L6470_DaisyChainSpiRxStruct);
+
+			// handle commands
+			switch (UsartTextString[0]) {
+	//		case 'e':
+	//		case 'x':
+	//			run = false;
+	//			break;
+			case 'P':
+				ActivateABP();
+				break;
+			case 'R':
+				ReactivateABP();
+				break;
+			case 'o':
+				// get opmode
+				GetOPMODE();
+				break;
+			case 'm':
+				// set opmode
+				SetOPMODE();
+				break;
+			case 'n':
+				// clear opmode
+				ClearOPMODE();
+				break;
+			case 'e':
+				// set dev eui
+				SetDevEUI();
+				break;
+
+			case '-':
+				// get rtc
+				ClearRTCAlarm();
+				break;
+
+			case 't':
+				// get rtc
+				GetRTC();
+				break;
+
+			case 'a':
+				// get rtc alarm
+				GetAlarm();
+				break;
+
+			case 's':
+				// device status
+				GetDeviceStatus();
+				break;
+
+			case 'r':
+				// reset device
+				Reset();
+				break;
+
+			case 'f':
+				// get firmware version
+				GetFirmwareVersion();
+				break;
+
+			case 'i':
+				// get device info
+				GetDeviceInfo();
+				break;
+
+			case 'p':
+				// ping device
+				Ping();
+				break;
+
+			case 'j':
+				// join network
+				Join();
+				break;
+
+			case 'u':
+				// send u-data
+				SendUData();
+				break;
+
+			case 'c':
+				// send c-data
+				SendCData();
+				break;
+
+			case ' ':
+				USART_ShowMenu(
+	#ifdef Q_OS_WIN
+						comPort
+	#endif
+						);
+				break;
+			}
+
+			HAL_UART_Abort(&hlpuart1);
+			memset(&UsartTextString, 0x0, sizeof(UsartTextString));
+		}
+
+		/* Prepare to receive a text string via USART with UART_IT_RXNE */
+		HAL_UART_Receive_IT(&hlpuart1, UsartTextString, USARTTEXTSTRINGSIZE);
+	}
+}
 //------------------------------------------------------------------------------
 //
 //  ShowMenu
@@ -630,6 +682,17 @@ void USART_ShowMenu(
 #endif
     USART_Transmit(&hlpuart1, "------------------------------\n\r");
     USART_Transmit(&hlpuart1, "[SPACE] : show this menu\n\r");
+    USART_Transmit(&hlpuart1, "[o]     : get OPMODE\n\r");
+    USART_Transmit(&hlpuart1, "[m]     : set OPMODE\n\r");
+    USART_Transmit(&hlpuart1, "[n]     : clear OPMODE\n\r");
+//    USART_Transmit(&hlpuart1, "[e] <0123456789ABCDEF> : set DEV EUI\n\r");
+    USART_Transmit(&hlpuart1, "[P]     : activate ABP\n\r");
+    USART_Transmit(&hlpuart1, "[R]     : reactivate ABP\n\r");
+    USART_Transmit(&hlpuart1, "[t]     : get RTC\n\r");
+    USART_Transmit(&hlpuart1, "[*]     : set RTC\n\r");
+	USART_Transmit(&hlpuart1, "[a]     : get RTC alarm\n\r");
+	USART_Transmit(&hlpuart1, "[+]     : set RTC alarm\n\r");
+	USART_Transmit(&hlpuart1, "[-]     : clear RTC alarm\n\r");
     USART_Transmit(&hlpuart1, "[r]     : reset device\n\r");
     USART_Transmit(&hlpuart1, "[p]     : ping device\n\r");
     USART_Transmit(&hlpuart1, "[f]     : get firmware version\n\r");
@@ -641,6 +704,156 @@ void USART_ShowMenu(
 //    printf("[e|x]   : exit program\n\r");
     USART_Transmit(&hlpuart1, "-> enter command: ");
 
+}
+
+//------------------------------------------------------------------------------
+//
+//  ActivateABP
+//
+//  @brief: Activate ABP
+//
+//------------------------------------------------------------------------------
+static void
+ActivateABP(void)
+{
+	uint8_t payload[36] = {
+			0x6c, 0x01, 0x00, 0x00,
+			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
+			0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00
+	};
+	USART_Transmit(&hlpuart1, "Activate ABP\n\r");
+
+	// send unconfirmed radio message
+	WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_ACTIVATE_DEVICE_REQ, payload, 36);
+}
+
+//------------------------------------------------------------------------------
+//
+//  ReactivateABP
+//
+//  @brief: Reactivate ABP
+//
+//------------------------------------------------------------------------------
+static void
+ReactivateABP(void)
+{
+	USART_Transmit(&hlpuart1, "Reactivate ABP\n\r");
+
+	// send unconfirmed radio message
+	WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_REACTIVATE_DEVICE_REQ, NULL, 0);
+}
+//------------------------------------------------------------------------------
+//
+//  SetDevEUI
+//
+//  @brief: set DEV EUI 64 bit
+//
+//------------------------------------------------------------------------------
+static void
+SetDevEUI(void)
+{
+	//Valid Dev EUI number
+	int i;
+	for (i = 2; i < 21; ++i) {
+		if((isxdigit(UsartTextString[i]) != true))
+		{
+			USART_Transmit(&hlpuart1, "bad input dev eui!!!\n\r");
+			return;
+		}
+	}
+}
+//------------------------------------------------------------------------------
+//
+//  SetOPMODE
+//
+//  @brief: set OPMODE
+//	Index Description
+//	0 Standard Application Mode / Default Mode
+//	1 Reserved
+//	2 Reserved
+//	3 Customer Mode
+//
+//------------------------------------------------------------------------------
+static void
+SetOPMODE(void)
+{
+	USART_Transmit(&hlpuart1, "set OPMODE\n\r");
+
+    WiMOD_LoRaWAN_SetOPMODE(3);
+}
+
+//------------------------------------------------------------------------------
+//
+//  ClearOPMODE
+//
+//  @brief: clear OPMODE
+//
+//------------------------------------------------------------------------------
+static void
+ClearOPMODE(void)
+{
+	USART_Transmit(&hlpuart1, "clear OPMODE\n\r");
+
+    WiMOD_LoRaWAN_SetOPMODE(0);
+}
+
+//------------------------------------------------------------------------------
+//
+//  GetOPMODE
+//
+//  @brief: get OPMODE
+//
+//------------------------------------------------------------------------------
+static void
+GetOPMODE(void)
+{
+	USART_Transmit(&hlpuart1, "get OPMODE\n\r");
+
+    WiMOD_LoRaWAN_GetOPMODE();
+}
+
+//------------------------------------------------------------------------------
+//
+//  ClearRTCAlarm
+//
+//  @brief: clear RTC alarm
+//
+//------------------------------------------------------------------------------
+static void
+ClearRTCAlarm(void)
+{
+	USART_Transmit(&hlpuart1, "clear RTC alarm\n\r");
+
+    WiMOD_LoRaWAN_ClearRTCAlarm();
+}
+
+//------------------------------------------------------------------------------
+//
+//  GetRTC
+//
+//  @brief: get RTC
+//
+//------------------------------------------------------------------------------
+static void
+GetRTC(void)
+{
+	USART_Transmit(&hlpuart1, "get RTC\n\r");
+
+    WiMOD_LoRaWAN_GetRTC();
+}
+//------------------------------------------------------------------------------
+//
+//  GetAlarm
+//
+//  @brief: get RTC Alarm device
+//
+//------------------------------------------------------------------------------
+static void
+GetAlarm(void)
+{
+	USART_Transmit(&hlpuart1, "get RTC alarm\n\r");
+
+    WiMOD_LoRaWAN_GetRTCAlarm();
 }
 //------------------------------------------------------------------------------
 //
