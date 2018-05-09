@@ -64,6 +64,15 @@ static void
 WiMOD_LoRaWAN_Process_LoRaWAN_Message(TWiMOD_HCI_Message*  rxMessage);
 
 static void
+WiMOD_LoRaWAN_Process_Reactivate_Rsp(TWiMOD_HCI_Message*  rxMessage);
+
+static void
+WiMOD_LoRaWAN_Process_U_DATA_TxIndication(TWiMOD_HCI_Message* rxMessage);
+
+static void
+WiMOD_LoRaWAN_Process_C_DATA_TxIndication(TWiMOD_HCI_Message* rxMessage);
+
+static void
 WiMOD_LoRaWAN_Process_JoinTxIndication(TWiMOD_HCI_Message* rxMessage);
 
 static void
@@ -876,6 +885,18 @@ WiMOD_LoRaWAN_Process_LoRaWAN_Message(TWiMOD_HCI_Message*  rxMessage)
 {
     switch(rxMessage->MsgID)
     {
+    	case 	LORAWAN_MSG_ACTIVATE_DEVICE_RSP:
+    			WiMOD_LoRaWAN_ShowResponse("activate device response", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
+    			break;
+
+    	case 	LORAWAN_MSG_REACTIVATE_DEVICE_RSP:
+    			WiMOD_LoRaWAN_Process_Reactivate_Rsp(rxMessage);
+    	    	break;
+
+    	case 	LORAWAN_MSG_DEACTIVATE_DEVICE_RSP:
+    		WiMOD_LoRaWAN_ShowResponse("deactivate device response", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
+				break;
+
         case    LORAWAN_MSG_JOIN_NETWORK_RSP:
                 WiMOD_LoRaWAN_ShowResponse("join network response", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
                 break;
@@ -884,10 +905,16 @@ WiMOD_LoRaWAN_Process_LoRaWAN_Message(TWiMOD_HCI_Message*  rxMessage)
                 WiMOD_LoRaWAN_ShowResponse("send U-Data response", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
                 break;
 
+        case    LORAWAN_MSG_SEND_UDATA_IND:
+        		WiMOD_LoRaWAN_Process_U_DATA_TxIndication(rxMessage);
+        		break;
+
         case    LORAWAN_MSG_SEND_CDATA_RSP:
                 WiMOD_LoRaWAN_ShowResponse("send C-Data response", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
                 break;
+        case	LORAWAN_MSG_SEND_CDATA_IND:
 
+				break;
         case    LORAWAN_MSG_JOIN_TRANSMIT_IND:
                 WiMOD_LoRaWAN_Process_JoinTxIndication(rxMessage);
                 break;
@@ -916,6 +943,92 @@ WiMOD_LoRaWAN_Process_LoRaWAN_Message(TWiMOD_HCI_Message*  rxMessage)
     }
 }
 
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_Process_Reactivate_Rsp
+//
+//  @brief: reactivate device
+//
+//------------------------------------------------------------------------------
+
+static void
+WiMOD_LoRaWAN_Process_Reactivate_Rsp(TWiMOD_HCI_Message*  rxMessage)
+{
+	uint8_t str[8] = {0};
+	uint32_t help = 0;
+    WiMOD_LoRaWAN_ShowResponse("reactivate device response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+
+    if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
+    {
+    	memcpy((uint8_t*) &help, &rxMessage->Payload[1], 4);
+    	num2str(help, str);	//Second
+    	USART_Transmit(&hlpuart1, "Device address: 0x");
+		USART_Transmit(&hlpuart1, (const char* ) num2hex((uint32_t)help, DOUBLEWORD_F));
+		USART_Transmit(&hlpuart1, "(");
+		USART_Transmit(&hlpuart1, (const char* ) str);
+		USART_Transmit(&hlpuart1, ")\n\r");
+    }
+}
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_Process_C_DATA_TxIndication
+//
+//  @brief: confirm data transmit indicaton
+//
+//------------------------------------------------------------------------------
+static void
+WiMOD_LoRaWAN_Process_C_DATA_TxIndication(TWiMOD_HCI_Message* rxMessage)
+{
+	int i;
+    if (rxMessage->Payload[0] == 0)
+    {
+        printf("c data tx event - Status : ok\n\r");
+    }
+    // channel info attached ?
+    else if(rxMessage->Payload[0] == 1)
+    {
+    	printf("c data tx event %d\n\r", (int)rxMessage->Payload[1]);
+    	for (i = 0; i < rxMessage->Length; ++i) {
+    		printf("\tbyte %d: %d\n\r", i, (int)rxMessage->Payload[i + 2]);
+		}
+//        printf("c data tx event:%d, ChnIdx:%d, DR:%d - Status : ok\n\r", (int)rxMessage->Payload[3], (int)rxMessage->Payload[1], (int)rxMessage->Payload[2]);
+    }
+    else
+    {
+        printf("c data tx event - Status : error\n\r");
+    }
+}
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_Process_U_DATA_TxIndication
+//
+//  @brief: unconfirm data transmit indicaton
+//
+//------------------------------------------------------------------------------
+static void
+WiMOD_LoRaWAN_Process_U_DATA_TxIndication(TWiMOD_HCI_Message* rxMessage)
+{
+	int i;
+    if (rxMessage->Payload[0] == 0)
+    {
+        printf("u data tx event - Status : ok\n\r");
+    }
+    // channel info attached ?
+    else if(rxMessage->Payload[0] == 1)
+    {
+    	printf("u data tx event %d\n\r", (int)rxMessage->Payload[1]);
+    	for (i = 0; i < rxMessage->Length; ++i) {
+    		printf("\tbyte %d: %d\n\r", i, (int)rxMessage->Payload[i + 2]);
+		}
+//        printf("u data tx event:%d, ChnIdx:%d, DR:%d - Status : ok\n\r", (int)rxMessage->Payload[3], (int)rxMessage->Payload[1], (int)rxMessage->Payload[2]);
+    }
+    else
+    {
+        printf("u data tx event - Status : error\n\r");
+    }
+}
 //------------------------------------------------------------------------------
 //
 //  WiMOD_LoRaWAN_Process_JoinTxIndication

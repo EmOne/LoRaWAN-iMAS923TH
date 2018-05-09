@@ -40,7 +40,8 @@ static HANDLE   ComHandle = INVALID_HANDLE_VALUE;
 // forward declarations
 static void     Ping(void);
 static void		ActivateABP(void);
-static void		ReactivateABP(void);
+static void		Reactivate(void);
+static void		Deactivate(void);
 static void 	SetDevEUI(void);
 static void 	GetOPMODE(void);
 static void 	SetOPMODE(void);
@@ -565,11 +566,14 @@ void USART_CheckAppCmd(void)
 	//		case 'x':
 	//			run = false;
 	//			break;
-			case 'P':
+			case 'A':
 				ActivateABP();
 				break;
 			case 'R':
-				ReactivateABP();
+				Reactivate();
+				break;
+			case 'D':
+				Deactivate();
 				break;
 			case 'o':
 				// get opmode
@@ -686,8 +690,9 @@ void USART_ShowMenu(
     USART_Transmit(&hlpuart1, "[m]     : set OPMODE\n\r");
     USART_Transmit(&hlpuart1, "[n]     : clear OPMODE\n\r");
 //    USART_Transmit(&hlpuart1, "[e] <0123456789ABCDEF> : set DEV EUI\n\r");
-    USART_Transmit(&hlpuart1, "[P]     : activate ABP\n\r");
-    USART_Transmit(&hlpuart1, "[R]     : reactivate ABP\n\r");
+    USART_Transmit(&hlpuart1, "[A]     : activate ABP\n\r");
+    USART_Transmit(&hlpuart1, "[R]     : reactivate\n\r");
+    USART_Transmit(&hlpuart1, "[D]     : deactivate\n\r");
     USART_Transmit(&hlpuart1, "[t]     : get RTC\n\r");
     USART_Transmit(&hlpuart1, "[*]     : set RTC\n\r");
 	USART_Transmit(&hlpuart1, "[a]     : get RTC alarm\n\r");
@@ -716,15 +721,16 @@ void USART_ShowMenu(
 static void
 ActivateABP(void)
 {
-	uint8_t payload[36] = {
+	uint8_t payload[37] = {
 			0x6c, 0x01, 0x00, 0x00,
 			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
-			0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00
+			0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00,
+			0x00
 	};
 	USART_Transmit(&hlpuart1, "Activate ABP\n\r");
 
 	// send unconfirmed radio message
-	WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_ACTIVATE_DEVICE_REQ, payload, 36);
+	WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_ACTIVATE_DEVICE_REQ, payload, 37);
 }
 
 //------------------------------------------------------------------------------
@@ -735,13 +741,30 @@ ActivateABP(void)
 //
 //------------------------------------------------------------------------------
 static void
-ReactivateABP(void)
+Reactivate(void)
 {
-	USART_Transmit(&hlpuart1, "Reactivate ABP\n\r");
+	USART_Transmit(&hlpuart1, "Reactivate\n\r");
 
 	// send unconfirmed radio message
 	WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_REACTIVATE_DEVICE_REQ, NULL, 0);
 }
+
+//------------------------------------------------------------------------------
+//
+//  Deactivate
+//
+//  @brief: deactivate device
+//
+//------------------------------------------------------------------------------
+static void
+Deactivate(void)
+{
+	USART_Transmit(&hlpuart1, "Deactivate\n\r");
+
+	// send unconfirmed radio message
+	WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_DEACTIVATE_DEVICE_REQ, NULL, 0);
+}
+
 //------------------------------------------------------------------------------
 //
 //  SetDevEUI
