@@ -979,7 +979,7 @@ SendUData(void)
 {
 	USART_Transmit(&hlpuart1, "send U-Data\n\r");
 
-    // port 0x21
+    // port 0x21 (33)
     UINT8 port = 0x21;
 
     UINT8 data[4];
@@ -1004,7 +1004,7 @@ SendCData(void)
 {
 	USART_Transmit(&hlpuart1, "send C-Data\n\r");
 
-    // port 0x21
+    // port 0x23 (35)
     UINT8 port = 0x23;
 
     UINT8 data[6];

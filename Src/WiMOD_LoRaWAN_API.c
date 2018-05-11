@@ -84,6 +84,9 @@ WiMOD_LoRaWAN_Process_U_DataRxIndication(TWiMOD_HCI_Message* rxMessage);
 static void
 WiMOD_LoRaWAN_Process_C_DataRxIndication(TWiMOD_HCI_Message* rxMessage);
 
+void
+WiMOD_LoRaWAN_Process_MAC_CMDRxIndication(TWiMOD_HCI_Message* rxMessage);
+
 static void
 WiMOD_LoRaWAN_ShowResponse(const char* string, const TIDString* statusTable, UINT8 statusID);
 
@@ -930,7 +933,9 @@ WiMOD_LoRaWAN_Process_LoRaWAN_Message(TWiMOD_HCI_Message*  rxMessage)
         case    LORAWAN_MSG_RECV_CDATA_IND:
                 WiMOD_LoRaWAN_Process_C_DataRxIndication(rxMessage);
                 break;
-
+        case    LORAWAN_MSG_RECV_MAC_CMD_IND:
+        		WiMOD_LoRaWAN_Process_MAC_CMDRxIndication(rxMessage);
+        		break;
         case    LORAWAN_MSG_RECV_NODATA_IND:
                 USART_Transmit(&hlpuart1, "no data received indication\n\r");
                 break;
@@ -1010,8 +1015,7 @@ WiMOD_LoRaWAN_Process_C_DATA_TxIndication(TWiMOD_HCI_Message* rxMessage)
 static void
 WiMOD_LoRaWAN_Process_U_DATA_TxIndication(TWiMOD_HCI_Message* rxMessage)
 {
-	int i;
-    if (rxMessage->Payload[0] == 0)
+	if (rxMessage->Payload[0] == 0)
     {
         printf("u data tx event - Status : ok\n\r");
     }
@@ -1019,10 +1023,16 @@ WiMOD_LoRaWAN_Process_U_DATA_TxIndication(TWiMOD_HCI_Message* rxMessage)
     else if(rxMessage->Payload[0] == 1)
     {
     	printf("u data tx event %d\n\r", (int)rxMessage->Payload[1]);
-    	for (i = 0; i < rxMessage->Length; ++i) {
-    		printf("\tbyte %d: %d\n\r", i, (int)rxMessage->Payload[i + 2]);
-		}
-//        printf("u data tx event:%d, ChnIdx:%d, DR:%d - Status : ok\n\r", (int)rxMessage->Payload[3], (int)rxMessage->Payload[1], (int)rxMessage->Payload[2]);
+    	printf("\tDR: %d\n\r", (int)rxMessage->Payload[2]);
+    	printf("\tChannel: %d\n\r", (int)rxMessage->Payload[3]);
+    	printf("\tPower(dBm): %d\n\r", (int)rxMessage->Payload[4]);
+    	printf("\tRSSI: %d\n\r", (int)rxMessage->Payload[5]);
+    	printf("\tbyte 4: %d\n\r", (int)rxMessage->Payload[6]);
+    	printf("\tbyte 5: %d\n\r", (int)rxMessage->Payload[7]);
+    	printf("\tbyte 6: %d\n\r", (int)rxMessage->Payload[8]);
+    	printf("\tbyte 7: %d\n\r", (int)rxMessage->Payload[9]);
+    	printf("\tbyte 8: %d\n\r", (int)rxMessage->Payload[10]);
+
     }
     else
     {
@@ -1107,10 +1117,12 @@ WiMOD_LoRaWAN_Process_U_DataRxIndication(TWiMOD_HCI_Message* rxMessage)
 
     if (payloadSize >= 1)
     {
-        printf("U-Data rx event: port:0x%02X\n\rapp-payload:", rxMessage->Payload[1]);
-        for(int i = 1; i < payloadSize;)
-            printf("%02X ", rxMessage->Payload[1+i]);
-        printf("\n\r");
+    	USART_Transmit(&hlpuart1, "U-Data rx event: port:0x");
+        USART_Transmit(&hlpuart1, num2hex(rxMessage->Payload[1], BYTE_F));
+        USART_Transmit(&hlpuart1, "\n\rapp-payload: 0x");
+        for(int i = 1; i < payloadSize; i++)
+        	USART_Transmit(&hlpuart1, num2hex(rxMessage->Payload[1+i], BYTE_F));
+        USART_Transmit(&hlpuart1, "\n\r");
     }
 
     if (rxMessage->Payload[0] & 0x02)
@@ -1133,6 +1145,50 @@ WiMOD_LoRaWAN_Process_U_DataRxIndication(TWiMOD_HCI_Message* rxMessage)
     }
 }
 
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_Process_MAC_CMDRxIndication
+//
+//  @brief: show received MAC cmd
+//
+//------------------------------------------------------------------------------
+void
+WiMOD_LoRaWAN_Process_MAC_CMDRxIndication(TWiMOD_HCI_Message* rxMessage)
+{
+    int payloadSize = rxMessage->Length - 1;
+//
+    // rx channel info attached ?
+    if (rxMessage->Payload[0] & 0x01)
+        payloadSize -= 5;
+
+    if (payloadSize >= 1)
+    {
+        USART_Transmit(&hlpuart1, "MAC rx event:\n\rmac-payload: 0x");
+		for(int i = 0; i < payloadSize; i++)
+			USART_Transmit(&hlpuart1, num2hex(rxMessage->Payload[1+i], BYTE_F));
+		USART_Transmit(&hlpuart1, "\n\r");
+    }
+
+//    if (rxMessage->Payload[0] & 0x02)
+//        printf("ack for uplink packet:yes\n\r");
+//    else
+//        printf("ack for uplink packet:no\n\r");
+//
+//    if (rxMessage->Payload[0] & 0x04)
+//        printf("frame pending:yes\n\r");
+//    else
+//        printf("frame pending:no\n\r");
+
+    // rx channel info attached ?
+    if (rxMessage->Payload[0] & 0x01)
+    {
+        UINT8* rxInfo = &rxMessage->Payload[1 + payloadSize];
+        printf("ChnIdx:%d, DR:%d, RSSI:%d, SNR:%d, RxSlot:%d\n\r",
+              (int)rxInfo[0], (int)rxInfo[1], (int)rxInfo[2],
+              (int)rxInfo[3], (int)rxInfo[4]);
+    }
+}
 //------------------------------------------------------------------------------
 //
 //  WiMOD_LoRaWAN_Process_C_DataRxIndication
@@ -1154,7 +1210,7 @@ WiMOD_LoRaWAN_Process_C_DataRxIndication(TWiMOD_HCI_Message* rxMessage)
     {
         printf("C-Data rx event: port:0x%02X\n\rapp-payload:", rxMessage->Payload[1]);
         for(int i = 1; i < payloadSize;)
-            printf("%02X ", rxMessage->Payload[1+i]);
+        	USART_Transmit(&hlpuart1, num2hex(rxMessage->Payload[1+i], BYTE_F));
         printf("\n\r");
     }
 
@@ -1196,7 +1252,7 @@ WiMOD_LoRaWAN_ShowResponse(const char* string, const TIDString* statusTable, UIN
             USART_Transmit(&hlpuart1, string);
             USART_Transmit(&hlpuart1, " - Status(0x");
 			USART_Transmit(&hlpuart1, (const char* ) num2hex(statusID, BYTE_F));
-			USART_Transmit(&hlpuart1, ")");
+			USART_Transmit(&hlpuart1, ") ");
             USART_Transmit(&hlpuart1, statusTable->String);
             USART_Transmit(&hlpuart1, "\n\r");
             return;
