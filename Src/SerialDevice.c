@@ -42,6 +42,7 @@ static void     Ping(void);
 static void		ActivateABP(void);
 static void		Reactivate(void);
 static void		Deactivate(void);
+static void		SetRadioStack(void);
 static void 	SetDevEUI(void);
 static void 	GetOPMODE(void);
 static void 	SetOPMODE(void);
@@ -575,6 +576,10 @@ void USART_CheckAppCmd(void)
 			case 'D':
 				Deactivate();
 				break;
+			case 'S':
+				SetRadioStack();
+				break;
+
 			case 'o':
 				// get opmode
 				GetOPMODE();
@@ -693,10 +698,12 @@ void USART_ShowMenu(
     USART_Transmit(&hlpuart1, "[A]     : activate ABP\n\r");
     USART_Transmit(&hlpuart1, "[R]     : reactivate\n\r");
     USART_Transmit(&hlpuart1, "[D]     : deactivate\n\r");
+    USART_Transmit(&hlpuart1, "[S]     : set Radio Stack Configuration\n\r");
+
     USART_Transmit(&hlpuart1, "[t]     : get RTC\n\r");
-    USART_Transmit(&hlpuart1, "[*]     : set RTC\n\r");
+//    USART_Transmit(&hlpuart1, "[*]     : set RTC\n\r");
 	USART_Transmit(&hlpuart1, "[a]     : get RTC alarm\n\r");
-	USART_Transmit(&hlpuart1, "[+]     : set RTC alarm\n\r");
+//	USART_Transmit(&hlpuart1, "[+]     : set RTC alarm\n\r");
 	USART_Transmit(&hlpuart1, "[-]     : clear RTC alarm\n\r");
     USART_Transmit(&hlpuart1, "[r]     : reset device\n\r");
     USART_Transmit(&hlpuart1, "[p]     : ping device\n\r");
@@ -765,6 +772,30 @@ Deactivate(void)
 	WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_DEACTIVATE_DEVICE_REQ, NULL, 0);
 }
 
+static void
+SetRadioStack(void)
+{
+	USART_Transmit(&hlpuart1, "SetRadioStack\n\r");
+
+
+	    UINT8 data[7];
+
+	    data[0] = 5;	//Default Data Rate Index
+	    data[1] = 16;	//Default TX Power Level (EIRP)
+	    data[2] = 0xC7;
+//	    Bit 0: 0 = Adaptive Data Rate disabled	    1 = Adaptive Data Rate enabled
+//	    Bit 1: 0 = Duty Cycle Control disabled 1 = Duty Cycle Control enabled (Customer Mode required)
+//	    Bit 2: 0 = Class A selected 1 = Class C selected
+//	    Bit 6: 0 = standard RF packet output format	    1 = extended RF packet output format: Tx/Rx channel info attached
+//	    Bit 7: 0 = Rx MAC Command Forwarding disabled 	    1 = Rx MAC Command Forwarding enabled
+	    data[3] = 0x0;	//Power Saving Mode 0x00 : off	    0x01 : automatic
+	    data[4] = 7;	//Number of Retransmissions
+	    data[5] = 0x04;	//Band Index AS923TH
+	    data[6] = 15;// Header MAC Cmd Capacity
+
+	    // send unconfirmed radio message
+	    WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_SET_RSTACK_CONFIG_REQ, data, 7);
+}
 //------------------------------------------------------------------------------
 //
 //  SetDevEUI

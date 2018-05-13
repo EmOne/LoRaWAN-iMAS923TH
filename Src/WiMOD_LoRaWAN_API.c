@@ -84,8 +84,11 @@ WiMOD_LoRaWAN_Process_U_DataRxIndication(TWiMOD_HCI_Message* rxMessage);
 static void
 WiMOD_LoRaWAN_Process_C_DataRxIndication(TWiMOD_HCI_Message* rxMessage);
 
-void
+static void
 WiMOD_LoRaWAN_Process_MAC_CMDRxIndication(TWiMOD_HCI_Message* rxMessage);
+
+static void
+WiMOD_LoRaWAN_Process_Set_RSTACK_RSP(TWiMOD_HCI_Message* rxMessage);
 
 static void
 WiMOD_LoRaWAN_ShowResponse(const char* string, const TIDString* statusTable, UINT8 statusID);
@@ -915,9 +918,11 @@ WiMOD_LoRaWAN_Process_LoRaWAN_Message(TWiMOD_HCI_Message*  rxMessage)
         case    LORAWAN_MSG_SEND_CDATA_RSP:
                 WiMOD_LoRaWAN_ShowResponse("send C-Data response", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
                 break;
-        case	LORAWAN_MSG_SEND_CDATA_IND:
 
+        case	LORAWAN_MSG_SEND_CDATA_IND:
+        		WiMOD_LoRaWAN_Process_C_DATA_TxIndication(rxMessage);
 				break;
+
         case    LORAWAN_MSG_JOIN_TRANSMIT_IND:
                 WiMOD_LoRaWAN_Process_JoinTxIndication(rxMessage);
                 break;
@@ -933,13 +938,17 @@ WiMOD_LoRaWAN_Process_LoRaWAN_Message(TWiMOD_HCI_Message*  rxMessage)
         case    LORAWAN_MSG_RECV_CDATA_IND:
                 WiMOD_LoRaWAN_Process_C_DataRxIndication(rxMessage);
                 break;
+
         case    LORAWAN_MSG_RECV_MAC_CMD_IND:
         		WiMOD_LoRaWAN_Process_MAC_CMDRxIndication(rxMessage);
         		break;
+
         case    LORAWAN_MSG_RECV_NODATA_IND:
                 USART_Transmit(&hlpuart1, "no data received indication\n\r");
                 break;
-
+        case	LORAWAN_MSG_SET_RSTACK_CONFIG_RSP:
+        		WiMOD_LoRaWAN_Process_Set_RSTACK_RSP(rxMessage);
+        	break;
         default:
         		USART_Transmit(&hlpuart1, "Unhandled LoRaWAN SAP message received - MsgID : 0x");
         		USART_Transmit(&hlpuart1, num2hex(rxMessage->MsgID, BYTE_F));
@@ -979,32 +988,37 @@ WiMOD_LoRaWAN_Process_Reactivate_Rsp(TWiMOD_HCI_Message*  rxMessage)
 //
 //  WiMOD_LoRaWAN_Process_C_DATA_TxIndication
 //
-//  @brief: confirm data transmit indicaton
+//  @brief: unconfirm data transmit indicaton
 //
 //------------------------------------------------------------------------------
 static void
 WiMOD_LoRaWAN_Process_C_DATA_TxIndication(TWiMOD_HCI_Message* rxMessage)
 {
-	int i;
-    if (rxMessage->Payload[0] == 0)
+	if (rxMessage->Payload[0] == 0)
     {
-        printf("c data tx event - Status : ok\n\r");
+        printf("c data tx event : radio packet sent\n\r");
     }
     // channel info attached ?
     else if(rxMessage->Payload[0] == 1)
     {
-    	printf("c data tx event %d\n\r", (int)rxMessage->Payload[1]);
-    	for (i = 0; i < rxMessage->Length; ++i) {
-    		printf("\tbyte %d: %d\n\r", i, (int)rxMessage->Payload[i + 2]);
-		}
-//        printf("c data tx event:%d, ChnIdx:%d, DR:%d - Status : ok\n\r", (int)rxMessage->Payload[3], (int)rxMessage->Payload[1], (int)rxMessage->Payload[2]);
+    	printf("c data tx event : radio packet sent with tx channel info attached\n\r");
+    	printf("c data tx event ChIdx %d\n\r", (int)rxMessage->Payload[1]);
+    	printf("\tDR: %d\n\r", (int)rxMessage->Payload[2]);
+    	printf("\tNum: %d\n\r", (int)rxMessage->Payload[3]);
+    	printf("\tPower(dBm): %d\n\r", (int)rxMessage->Payload[4]);
+    	printf("\tAirtime (ms): %ld\n\r", (uint32_t *) &rxMessage->Payload[5]);
+
     }
+    else if (rxMessage->Payload[0] & 0x02)
+		        printf("error, maximum number of retransmissions reached\n\r");
+    else if (rxMessage->Payload[0] & 0x04)
+		        printf("maximum payload size exceeded for current data rate\n\r");
     else
     {
         printf("c data tx event - Status : error\n\r");
     }
-}
 
+}
 //------------------------------------------------------------------------------
 //
 //  WiMOD_LoRaWAN_Process_U_DATA_TxIndication
@@ -1017,21 +1031,17 @@ WiMOD_LoRaWAN_Process_U_DATA_TxIndication(TWiMOD_HCI_Message* rxMessage)
 {
 	if (rxMessage->Payload[0] == 0)
     {
-        printf("u data tx event - Status : ok\n\r");
+        printf("u data tx event : radio packet sent\n\r");
     }
     // channel info attached ?
     else if(rxMessage->Payload[0] == 1)
     {
-    	printf("u data tx event %d\n\r", (int)rxMessage->Payload[1]);
+    	printf("u data tx event : radio packet sent with tx channel info attached\n\r");
+    	printf("u data tx event ChIdx %d\n\r", (int)rxMessage->Payload[1]);
     	printf("\tDR: %d\n\r", (int)rxMessage->Payload[2]);
-    	printf("\tChannel: %d\n\r", (int)rxMessage->Payload[3]);
+    	printf("\tNum: %d\n\r", (int)rxMessage->Payload[3]);
     	printf("\tPower(dBm): %d\n\r", (int)rxMessage->Payload[4]);
-    	printf("\tRSSI: %d\n\r", (int)rxMessage->Payload[5]);
-    	printf("\tbyte 4: %d\n\r", (int)rxMessage->Payload[6]);
-    	printf("\tbyte 5: %d\n\r", (int)rxMessage->Payload[7]);
-    	printf("\tbyte 6: %d\n\r", (int)rxMessage->Payload[8]);
-    	printf("\tbyte 7: %d\n\r", (int)rxMessage->Payload[9]);
-    	printf("\tbyte 8: %d\n\r", (int)rxMessage->Payload[10]);
+    	printf("\tAirtime (ms): %ld\n\r", (uint32_t *) &rxMessage->Payload[5]);
 
     }
     else
@@ -1145,7 +1155,108 @@ WiMOD_LoRaWAN_Process_U_DataRxIndication(TWiMOD_HCI_Message* rxMessage)
     }
 }
 
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_Process_Set_RSTACK_RSP
+//
+//  @brief: Set Radio STACK ReSPonse
+//
+//------------------------------------------------------------------------------
+static void
+WiMOD_LoRaWAN_Process_Set_RSTACK_RSP(TWiMOD_HCI_Message* rxMessage)
+{
+	WiMOD_LoRaWAN_ShowResponse("Set Radio STACK ReSPonse", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
 
+	if (rxMessage->Payload[1] & 0x01) {
+		 printf("Wrong Data Rate\n\r");
+	}
+	if (rxMessage->Payload[1] & 0x02) {
+		printf("Wrong TX Power Level\n\r");
+	}
+	if (rxMessage->Payload[1] & 0x10) {
+		printf("Wrong Band Index\n\r");
+	}
+}
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_Process_Get_RSTACK_RSP
+//
+//  @brief: Get Radio STACK ReSPonse
+//
+//------------------------------------------------------------------------------
+static void
+WiMOD_LoRaWAN_Process_Get_RSTACK_RSP(TWiMOD_HCI_Message* rxMessage)
+{
+	uint8_t str[8] = {0};
+	uint32_t help;
+	WiMOD_LoRaWAN_ShowResponse("Get Radio STACK ReSPonse", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+
+	USART_Transmit(&hlpuart1, "Data Rate: ");
+	num2str(rxMessage->Payload[1], str);
+	USART_Transmit(&hlpuart1, str);
+	USART_Transmit(&hlpuart1, "\n\r");
+
+	USART_Transmit(&hlpuart1, "TX Power Level (EIRP): ");
+	num2str(rxMessage->Payload[2], str);
+	USART_Transmit(&hlpuart1, str);
+	USART_Transmit(&hlpuart1, "\n\r");
+
+	USART_Transmit(&hlpuart1, "Adaptive DR: ");
+	if (rxMessage->Payload[3] & 0x1) {
+		USART_Transmit(&hlpuart1, "enable\n\r");
+	} else {
+		USART_Transmit(&hlpuart1, "disable\n\r");
+	}
+	USART_Transmit(&hlpuart1, "Duty Cycle: ");
+	if (rxMessage->Payload[3] & 0x2) {
+		USART_Transmit(&hlpuart1, "enable\n\r");
+	} else {
+		USART_Transmit(&hlpuart1, "disable\n\r");
+	}
+	USART_Transmit(&hlpuart1, "Class : ");
+	if (rxMessage->Payload[3] & 0x4) {
+		USART_Transmit(&hlpuart1, "A\n\r");
+	} else {
+		USART_Transmit(&hlpuart1, "C\n\r");
+	}
+	USART_Transmit(&hlpuart1, "RF format : ");
+	if (rxMessage->Payload[3] & 0x40) {
+		USART_Transmit(&hlpuart1, "standard\n\r");
+	} else {
+		USART_Transmit(&hlpuart1, "extended\n\r");
+	}
+	USART_Transmit(&hlpuart1, "MAC forwarding : ");
+	if (rxMessage->Payload[3] & 0x80) {
+		USART_Transmit(&hlpuart1, "enable\n\r");
+	} else {
+		USART_Transmit(&hlpuart1, "disable\n\r");
+	}
+
+
+	USART_Transmit(&hlpuart1, "Power Saving Mode: ");
+	if (rxMessage->Payload[4] & 0x1) {
+		USART_Transmit(&hlpuart1, "automatic\n\r");
+	} else {
+		USART_Transmit(&hlpuart1, "off\n\r");
+	}
+
+	USART_Transmit(&hlpuart1, "Retransmissions: ");
+	num2str(rxMessage->Payload[5], str);
+	USART_Transmit(&hlpuart1, str);
+	USART_Transmit(&hlpuart1, "\n\r");
+
+	USART_Transmit(&hlpuart1, "BandIdx: ");
+	num2str(rxMessage->Payload[6], str);
+	USART_Transmit(&hlpuart1, str);
+	USART_Transmit(&hlpuart1, "\n\r");
+
+	USART_Transmit(&hlpuart1, "MAC length: ");
+	num2str(rxMessage->Payload[7], str);
+	USART_Transmit(&hlpuart1, str);
+	USART_Transmit(&hlpuart1, "\n\r");
+
+}
 //------------------------------------------------------------------------------
 //
 //  WiMOD_LoRaWAN_Process_MAC_CMDRxIndication
@@ -1153,7 +1264,7 @@ WiMOD_LoRaWAN_Process_U_DataRxIndication(TWiMOD_HCI_Message* rxMessage)
 //  @brief: show received MAC cmd
 //
 //------------------------------------------------------------------------------
-void
+static void
 WiMOD_LoRaWAN_Process_MAC_CMDRxIndication(TWiMOD_HCI_Message* rxMessage)
 {
     int payloadSize = rxMessage->Length - 1;
