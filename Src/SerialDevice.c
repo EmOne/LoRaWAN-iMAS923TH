@@ -39,10 +39,16 @@ static HANDLE   ComHandle = INVALID_HANDLE_VALUE;
 // Todo : add your own platform specific variables here
 // forward declarations
 static void     Ping(void);
+static void     GetNwkStatus(void);
+static void 	GetCustomCFG(void);
+static void     SetCustomCFG(void);
 static void		ActivateABP(void);
 static void		Reactivate(void);
 static void		Deactivate(void);
 static void		SetRadioStack(void);
+static void     GetRadioStack(void);
+static void 	GetSupportBand(void);
+static void     GetDevEUI(void);
 static void 	SetDevEUI(void);
 static void 	GetOPMODE(void);
 static void 	SetOPMODE(void);
@@ -567,6 +573,15 @@ void USART_CheckAppCmd(void)
 	//		case 'x':
 	//			run = false;
 	//			break;
+			case 'N':
+				GetNwkStatus();
+				break;
+			case 'O':
+				SetCustomCFG();
+				break;
+			case 'C':
+				GetCustomCFG();
+				break;
 			case 'A':
 				ActivateABP();
 				break;
@@ -579,7 +594,12 @@ void USART_CheckAppCmd(void)
 			case 'S':
 				SetRadioStack();
 				break;
-
+			case 'K':
+				GetRadioStack();
+				break;
+			case 'G':
+				GetSupportBand();
+				break;
 			case 'o':
 				// get opmode
 				GetOPMODE();
@@ -591,6 +611,9 @@ void USART_CheckAppCmd(void)
 			case 'n':
 				// clear opmode
 				ClearOPMODE();
+				break;
+			case 'E':
+				GetDevEUI();
 				break;
 			case 'e':
 				// set dev eui
@@ -694,12 +717,17 @@ void USART_ShowMenu(
     USART_Transmit(&hlpuart1, "[o]     : get OPMODE\n\r");
     USART_Transmit(&hlpuart1, "[m]     : set OPMODE\n\r");
     USART_Transmit(&hlpuart1, "[n]     : clear OPMODE\n\r");
+	USART_Transmit(&hlpuart1, "[E]     : get DEV EUI\n\r");
 //    USART_Transmit(&hlpuart1, "[e] <0123456789ABCDEF> : set DEV EUI\n\r");
     USART_Transmit(&hlpuart1, "[A]     : activate ABP\n\r");
     USART_Transmit(&hlpuart1, "[R]     : reactivate\n\r");
     USART_Transmit(&hlpuart1, "[D]     : deactivate\n\r");
+    USART_Transmit(&hlpuart1, "[N]     : get network status\n\r");
+    USART_Transmit(&hlpuart1, "[K]     : get Radio Stack Configuration\n\r");
     USART_Transmit(&hlpuart1, "[S]     : set Radio Stack Configuration\n\r");
-
+    USART_Transmit(&hlpuart1, "[G]     : get support band\n\r");
+    USART_Transmit(&hlpuart1, "[C]     : get custom configuration\n\r");
+    USART_Transmit(&hlpuart1, "[O]     : set custom configuration\n\r");
     USART_Transmit(&hlpuart1, "[t]     : get RTC\n\r");
 //    USART_Transmit(&hlpuart1, "[*]     : set RTC\n\r");
 	USART_Transmit(&hlpuart1, "[a]     : get RTC alarm\n\r");
@@ -716,6 +744,55 @@ void USART_ShowMenu(
 //    printf("[e|x]   : exit program\n\r");
     USART_Transmit(&hlpuart1, "-> enter command: ");
 
+}
+
+//------------------------------------------------------------------------------
+//
+//  GetNwkStatus
+//
+//  @brief: get Network Status
+//
+//------------------------------------------------------------------------------
+static void
+GetNwkStatus(void)
+{
+	USART_Transmit(&hlpuart1, "GetNwkStatus\n\r");
+
+			// send unconfirmed radio message
+			WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_GET_NWK_STATUS_REQ, NULL, 0);
+}
+
+//------------------------------------------------------------------------------
+//
+//  SetCustomCFG
+//
+//  @brief: Set Custom CFG
+//
+//------------------------------------------------------------------------------
+static void
+SetCustomCFG(void)
+{
+	uint8_t payload = 0x00; //dBd
+	USART_Transmit(&hlpuart1, "SetCustomCFG\n\r");
+
+		// send unconfirmed radio message
+		WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_SET_CUSTOM_CFG_REQ, &payload, 1);
+}
+
+//------------------------------------------------------------------------------
+//
+//  GetCustomCFG
+//
+//  @brief: Get Custom CFG
+//
+//------------------------------------------------------------------------------
+static void
+GetCustomCFG(void)
+{
+	USART_Transmit(&hlpuart1, "GetCustomCFG\n\r");
+
+		// send unconfirmed radio message
+		WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_GET_CUSTOM_CFG_REQ, NULL, 0);
 }
 
 //------------------------------------------------------------------------------
@@ -772,6 +849,40 @@ Deactivate(void)
 	WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_DEACTIVATE_DEVICE_REQ, NULL, 0);
 }
 
+//------------------------------------------------------------------------------
+//
+//  GetSupportBand
+//
+//  @brief: Get Support Band
+//
+//------------------------------------------------------------------------------
+static void
+GetSupportBand(void)
+{
+	USART_Transmit(&hlpuart1, "GetSupportBand\n\r");
+	WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_GET_SUPPORTED_BANDS_REQ, NULL, 0);
+}
+
+//------------------------------------------------------------------------------
+//
+//  GetRadioStack
+//
+//  @brief: Get Radio Stack
+//
+//------------------------------------------------------------------------------
+static void
+GetRadioStack(void)
+{
+	USART_Transmit(&hlpuart1, "GetRadioStack\n\r");
+		WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_GET_RSTACK_CONFIG_REQ, NULL, 0);
+}
+//------------------------------------------------------------------------------
+//
+//  SetRadioStack
+//
+//  @brief: Set Radio Stack
+//
+//------------------------------------------------------------------------------
 static void
 SetRadioStack(void)
 {
@@ -780,22 +891,37 @@ SetRadioStack(void)
 
 	    UINT8 data[7];
 
-	    data[0] = 5;	//Default Data Rate Index
-	    data[1] = 16;	//Default TX Power Level (EIRP)
-	    data[2] = 0xC7;
+	    data[0] = 0x5;	//Default Data Rate Index
+	    data[1] = 0x10;	//Default TX Power Level (EIRP)
+	    data[2] = 0b11000111;
 //	    Bit 0: 0 = Adaptive Data Rate disabled	    1 = Adaptive Data Rate enabled
 //	    Bit 1: 0 = Duty Cycle Control disabled 1 = Duty Cycle Control enabled (Customer Mode required)
 //	    Bit 2: 0 = Class A selected 1 = Class C selected
 //	    Bit 6: 0 = standard RF packet output format	    1 = extended RF packet output format: Tx/Rx channel info attached
 //	    Bit 7: 0 = Rx MAC Command Forwarding disabled 	    1 = Rx MAC Command Forwarding enabled
 	    data[3] = 0x0;	//Power Saving Mode 0x00 : off	    0x01 : automatic
-	    data[4] = 7;	//Number of Retransmissions
-	    data[5] = 0x04;	//Band Index AS923TH
-	    data[6] = 15;// Header MAC Cmd Capacity
+	    data[4] = 0x7;	//Number of Retransmissions
+	    data[5] = 0x12;	//Band Index AS923TH
+	    data[6] = 0xf;// Header MAC Cmd Capacity
 
 	    // send unconfirmed radio message
 	    WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_SET_RSTACK_CONFIG_REQ, data, 7);
 }
+
+//------------------------------------------------------------------------------
+//
+//  GetDevEUI
+//
+//  @brief: get DEV EUI 64 bit
+//
+//------------------------------------------------------------------------------
+static void
+GetDevEUI(void)
+{
+	USART_Transmit(&hlpuart1, "GetDevEUI\n\r");
+	WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_GET_DEVICE_EUI_REQ, NULL, 0);
+}
+
 //------------------------------------------------------------------------------
 //
 //  SetDevEUI
@@ -807,14 +933,16 @@ static void
 SetDevEUI(void)
 {
 	//Valid Dev EUI number
+//	uint8_t eui = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 	int i;
-	for (i = 2; i < 21; ++i) {
+	for (i = 2; i < 18; ++i) {
 		if((isxdigit(UsartTextString[i]) != true))
 		{
 			USART_Transmit(&hlpuart1, "bad input dev eui!!!\n\r");
 			return;
 		}
 	}
+//	WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_SET_DEVICE_EUI_REQ, &UsartTextString[2], 8);
 }
 //------------------------------------------------------------------------------
 //

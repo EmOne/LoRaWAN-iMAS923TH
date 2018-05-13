@@ -91,6 +91,21 @@ static void
 WiMOD_LoRaWAN_Process_Set_RSTACK_RSP(TWiMOD_HCI_Message* rxMessage);
 
 static void
+WiMOD_LoRaWAN_Process_Get_RSTACK_RSP(TWiMOD_HCI_Message* rxMessage);
+
+static void
+WiMOD_LoRaWAN_Process_Get_Support_Band_RSP(TWiMOD_HCI_Message* rxMessage);
+
+static void
+WiMOD_LoRaWAN_Process_Get_Device_EUI_RSP(TWiMOD_HCI_Message* rxMessage);
+
+static void
+WiMOD_LoRaWAN_Process_Get_Custom_CFG_RSP(TWiMOD_HCI_Message* rxMessage);
+
+static void
+WiMOD_LoRaWAN_Process_Get_Network_Status_RSP(TWiMOD_HCI_Message* rxMessage);
+
+static void
 WiMOD_LoRaWAN_ShowResponse(const char* string, const TIDString* statusTable, UINT8 statusID);
 
 //------------------------------------------------------------------------------
@@ -526,6 +541,7 @@ WiMOD_LoRaWAN_Process_RxMessage(TWiMOD_HCI_Message*  rxMessage)
             WiMOD_LoRaWAN_Process_LoRaWAN_Message(rxMessage);
             break;
     }
+
     return &RxMessage;
 }
 
@@ -946,9 +962,39 @@ WiMOD_LoRaWAN_Process_LoRaWAN_Message(TWiMOD_HCI_Message*  rxMessage)
         case    LORAWAN_MSG_RECV_NODATA_IND:
                 USART_Transmit(&hlpuart1, "no data received indication\n\r");
                 break;
+
         case	LORAWAN_MSG_SET_RSTACK_CONFIG_RSP:
         		WiMOD_LoRaWAN_Process_Set_RSTACK_RSP(rxMessage);
         	break;
+
+        case	LORAWAN_MSG_GET_RSTACK_CONFIG_RSP:
+               		WiMOD_LoRaWAN_Process_Get_RSTACK_RSP(rxMessage);
+               	break;
+
+        case	LORAWAN_MSG_GET_SUPPORTED_BANDS_RSP:
+        	WiMOD_LoRaWAN_Process_Get_Support_Band_RSP(rxMessage);
+        	break;
+
+        case 	LORAWAN_MSG_GET_DEVICE_EUI_RSP:
+        	WiMOD_LoRaWAN_Process_Get_Device_EUI_RSP(rxMessage);
+        	break;
+
+        case LORAWAN_MSG_GET_CUSTOM_CFG_RSP:
+        	WiMOD_LoRaWAN_Process_Get_Custom_CFG_RSP(rxMessage);
+        	break;
+
+        case LORAWAN_MSG_SET_CUSTOM_CFG_RSP:
+        	 WiMOD_LoRaWAN_ShowResponse("set custom cfg response", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
+        	 break;
+
+        case LORAWAN_MSG_FACTORY_RESET_RSP:
+        	 WiMOD_LoRaWAN_ShowResponse("factory reset response", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
+			 break;
+
+        case LORAWAN_MSG_GET_NWK_STATUS_RSP:
+        	WiMOD_LoRaWAN_Process_Get_Network_Status_RSP(rxMessage);
+        	break;
+
         default:
         		USART_Transmit(&hlpuart1, "Unhandled LoRaWAN SAP message received - MsgID : 0x");
         		USART_Transmit(&hlpuart1, num2hex(rxMessage->MsgID, BYTE_F));
@@ -970,9 +1016,9 @@ WiMOD_LoRaWAN_Process_Reactivate_Rsp(TWiMOD_HCI_Message*  rxMessage)
 {
 	uint8_t str[8] = {0};
 	uint32_t help = 0;
-    WiMOD_LoRaWAN_ShowResponse("reactivate device response", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+    WiMOD_LoRaWAN_ShowResponse("reactivate device response", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
 
-    if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
+    if (rxMessage->Payload[0] == LORAWAN_STATUS_OK)
     {
     	memcpy((uint8_t*) &help, &rxMessage->Payload[1], 4);
     	num2str(help, str);	//Second
@@ -1157,6 +1203,120 @@ WiMOD_LoRaWAN_Process_U_DataRxIndication(TWiMOD_HCI_Message* rxMessage)
 
 //------------------------------------------------------------------------------
 //
+//  WiMOD_LoRaWAN_Process_Get_Network_Status_RSP
+//
+//  @brief: Get Network Status ReSPonse
+//
+//------------------------------------------------------------------------------
+static void
+WiMOD_LoRaWAN_Process_Get_Network_Status_RSP(TWiMOD_HCI_Message* rxMessage)
+{
+	uint8_t str[8] = {0};
+		uint32_t help;
+	WiMOD_LoRaWAN_ShowResponse(" Get Network Status ReSPonse", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
+
+	if (rxMessage->Payload[0] == LORAWAN_STATUS_OK) {
+
+		printf("Network Status: 0x%02X\n\r", rxMessage->Payload[1]);
+		switch (rxMessage->Payload[1]) {
+		case	0x01:
+			printf("active (ABP)\n\r");
+			break;
+		case	0x02:
+			printf("active (OTAA)\n\r");
+			break;
+		case	0x03:
+			printf("joining (OTAA)\n\r");
+			break;
+		default:
+			printf("device inactive\n\r");
+			return;
+		}
+		memcpy((uint8_t *) &help, &rxMessage->Payload[2], 4);
+
+		USART_Transmit(&hlpuart1, "\tDevice address: 0x");
+		USART_Transmit(&hlpuart1, (const char* ) num2hex((uint32_t)help, DOUBLEWORD_F));
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		num2str(rxMessage->Payload[6],str);
+		USART_Transmit(&hlpuart1, "\tDR: ");
+		USART_Transmit(&hlpuart1, str);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+		num2str(rxMessage->Payload[7],str);
+		USART_Transmit(&hlpuart1, "\tPower: ");
+		USART_Transmit(&hlpuart1, str);
+		USART_Transmit(&hlpuart1, "dBm\n\r");
+
+		num2str(rxMessage->Payload[8],str);
+		USART_Transmit(&hlpuart1, "\tMax. payload size: ");
+		USART_Transmit(&hlpuart1, str);
+		USART_Transmit(&hlpuart1, "\n\r");
+
+	}
+}
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_Process_Get_Custom_CFG_RSP
+//
+//  @brief: Get custom config ReSPonse
+//
+//------------------------------------------------------------------------------
+static void
+WiMOD_LoRaWAN_Process_Get_Custom_CFG_RSP(TWiMOD_HCI_Message* rxMessage)
+{
+	WiMOD_LoRaWAN_ShowResponse(" Get custom cfg ReSPonse", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
+	if (rxMessage->Payload[0] == LORAWAN_STATUS_OK)
+	{
+		printf("RF Gain: %d dBd\n\r", (int) rxMessage->Payload[1]);
+	}
+}
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_Process_Get_Device_EUI_RSP
+//
+//  @brief: Get device eui ReSPonse
+//
+//------------------------------------------------------------------------------
+static void
+WiMOD_LoRaWAN_Process_Get_Device_EUI_RSP(TWiMOD_HCI_Message* rxMessage)
+{
+	WiMOD_LoRaWAN_ShowResponse(" Get device eui ReSPonse", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
+	if (rxMessage->Payload[0] == LORAWAN_STATUS_OK)
+	{
+		printf("Device EUI: \n\r");
+		for (int var = 1; var < rxMessage->Length; ++var) {
+			printf(" %02X", rxMessage->Payload[var]);
+		}
+		printf("\n\r");
+	}
+}
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_Process_Get_Support_Band_RSP
+//
+//  @brief: Get support band ReSPonse
+//
+//------------------------------------------------------------------------------
+static void
+WiMOD_LoRaWAN_Process_Get_Support_Band_RSP(TWiMOD_HCI_Message* rxMessage)
+{
+
+	WiMOD_LoRaWAN_ShowResponse(" Get support band ReSPonse", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
+
+	if (rxMessage->Payload[0] == LORAWAN_STATUS_OK) {
+		for (int var = 1; var < rxMessage->Length; var += 2) {
+			printf("Band Idx: %d\n\r", rxMessage->Payload[var]);
+			printf("Max. EIRP: %d dBm\n\r", rxMessage->Payload[1+var]);
+		}
+	}
+}
+
+//------------------------------------------------------------------------------
+//
 //  WiMOD_LoRaWAN_Process_Set_RSTACK_RSP
 //
 //  @brief: Set Radio STACK ReSPonse
@@ -1165,16 +1325,19 @@ WiMOD_LoRaWAN_Process_U_DataRxIndication(TWiMOD_HCI_Message* rxMessage)
 static void
 WiMOD_LoRaWAN_Process_Set_RSTACK_RSP(TWiMOD_HCI_Message* rxMessage)
 {
-	WiMOD_LoRaWAN_ShowResponse("Set Radio STACK ReSPonse", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+	WiMOD_LoRaWAN_ShowResponse("Set Radio STACK ReSPonse", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
 
-	if (rxMessage->Payload[1] & 0x01) {
-		 printf("Wrong Data Rate\n\r");
-	}
-	if (rxMessage->Payload[1] & 0x02) {
-		printf("Wrong TX Power Level\n\r");
-	}
-	if (rxMessage->Payload[1] & 0x10) {
-		printf("Wrong Band Index\n\r");
+	if (rxMessage->Payload[0] == LORAWAN_STATUS_WRONG_PARAMETER) {
+
+		if (rxMessage->Payload[1] & 0x01) {
+			printf("Wrong Data Rate\n\r");
+		}
+		if (rxMessage->Payload[1] & 0x02) {
+			printf("Wrong TX Power Level\n\r");
+		}
+		if (rxMessage->Payload[1] & 0x20) {
+			printf("Wrong Band Index\n\r");
+		}
 	}
 }
 
@@ -1190,7 +1353,7 @@ WiMOD_LoRaWAN_Process_Get_RSTACK_RSP(TWiMOD_HCI_Message* rxMessage)
 {
 	uint8_t str[8] = {0};
 	uint32_t help;
-	WiMOD_LoRaWAN_ShowResponse("Get Radio STACK ReSPonse", WiMOD_DeviceMgmt_StatusStrings, rxMessage->Payload[0]);
+	WiMOD_LoRaWAN_ShowResponse("Get Radio STACK ReSPonse", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
 
 	USART_Transmit(&hlpuart1, "Data Rate: ");
 	num2str(rxMessage->Payload[1], str);
@@ -1216,15 +1379,15 @@ WiMOD_LoRaWAN_Process_Get_RSTACK_RSP(TWiMOD_HCI_Message* rxMessage)
 	}
 	USART_Transmit(&hlpuart1, "Class : ");
 	if (rxMessage->Payload[3] & 0x4) {
-		USART_Transmit(&hlpuart1, "A\n\r");
-	} else {
 		USART_Transmit(&hlpuart1, "C\n\r");
+	} else {
+		USART_Transmit(&hlpuart1, "A\n\r");
 	}
 	USART_Transmit(&hlpuart1, "RF format : ");
 	if (rxMessage->Payload[3] & 0x40) {
-		USART_Transmit(&hlpuart1, "standard\n\r");
-	} else {
 		USART_Transmit(&hlpuart1, "extended\n\r");
+	} else {
+		USART_Transmit(&hlpuart1, "standard\n\r");
 	}
 	USART_Transmit(&hlpuart1, "MAC forwarding : ");
 	if (rxMessage->Payload[3] & 0x80) {
