@@ -63,6 +63,7 @@ static void     Reset(void);
 static void     Join(void);
 static void     SendUData(void);
 static void     SendCData(void);
+static void		FactoryReset(void);
 #endif
 
 #define USART_STATUS_REGISTER   ISR                     //!< HAL USART status register name adapter.
@@ -265,9 +266,7 @@ SerialDevice_SendData(UINT8* txBuffer, int txLength)
     // Todo : add your own platform specific code here
 	if(HAL_UART_Transmit(&huart3, txBuffer, txLength, HAL_MAX_DELAY) != HAL_ERROR)
 	{
-		if (huart3.TxXferCount == txLength) {
-			return huart3.TxXferCount;
-		}
+		return txLength;
 	}
 #endif
     // error
@@ -308,7 +307,7 @@ SerialDevice_SendByte(UINT8 txByte)
     // Todo : add your own platform specific code here
     if(HAL_UART_Transmit(&huart3, &txByte, 1, HAL_MAX_DELAY) != HAL_ERROR)
 	{
-		return huart3.TxXferCount;
+		return 1;
 	}
 #endif
     // error
@@ -343,7 +342,7 @@ SerialDevice_ReadData(UINT8* rxBuffer, int rxBufferSize)
     // Todo : add your own platform specific code here
     if(HAL_UART_Receive(&huart3, rxBuffer, rxBufferSize, 500) != HAL_ERROR)
     {
-    	return huart3.RxXferSize - huart3.RxXferCount;
+    	return rxBufferSize;
     }
 #endif
     // error
@@ -357,10 +356,10 @@ SerialDevice_ReadData(UINT8* rxBuffer, int rxBufferSize)
 void USART_TxWelcomeMessage(void) {
 	/* Send information to PC via USART */
 	USART_Transmit(&hlpuart1, "\n\r");
-	USART_Transmit(&hlpuart1, " X-NUCLEO-IMAS923TH\n\r");
+	USART_Transmit(&hlpuart1, " LoRaWAN-iMAS923TH (iM980A) Demo\n\r");
 	USART_Transmit(&hlpuart1, " -------------------------------------------\n\r");
-	USART_Transmit(&hlpuart1, " IMAS923TH Expansion Board for STM32 NUCLEO\n\r");
-	USART_Transmit(&hlpuart1, " EmOne, 2018\n\r\n\r");
+	USART_Transmit(&hlpuart1, " iMAS923TH Expansion Board for STM32 NUCLEO\n\r\n\r");
+	USART_Transmit(&hlpuart1, " Copyright 2018 @ EmOne; The MIT License (MIT)\n\r\n\r");
 	USART_Transmit(&hlpuart1, " Welcome to WiMOD HCL example!!!\n\r");
 
 }
@@ -675,6 +674,11 @@ void USART_CheckAppCmd(void)
 				SendCData();
 				break;
 
+			case 'Z':
+				// factory reset
+				FactoryReset();
+				break;
+
 			case ' ':
 				USART_ShowMenu(
 	#ifdef Q_OS_WIN
@@ -739,8 +743,9 @@ void USART_ShowMenu(
     USART_Transmit(&hlpuart1, "[i]     : get device information\n\r");
     USART_Transmit(&hlpuart1, "[s]     : get device status\n\r");
     USART_Transmit(&hlpuart1, "[j]     : join network request\n\r");
-    USART_Transmit(&hlpuart1, "[u]     : send unconfirmed radio message\n\r");
-    USART_Transmit(&hlpuart1, "[c]     : send confirmed radio message\n\r\n\r");
+    USART_Transmit(&hlpuart1, "[u]     : send unconfirmed radio message port 21 data 01020304\n\r");
+    USART_Transmit(&hlpuart1, "[c]     : send confirmed radio message port 23 data 0A0B0C0D0E0F\n\r");
+    USART_Transmit(&hlpuart1, "[Z]     : factory reset\n\r\n\r");
 //    printf("[e|x]   : exit program\n\r");
     USART_Transmit(&hlpuart1, "-> enter command: ");
 
@@ -758,8 +763,8 @@ GetNwkStatus(void)
 {
 	USART_Transmit(&hlpuart1, "GetNwkStatus\n\r");
 
-			// send unconfirmed radio message
-			WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_GET_NWK_STATUS_REQ, NULL, 0);
+			// send get network status message
+	WiMOD_LoRaWAN_GetNkwStatus();
 }
 
 //------------------------------------------------------------------------------
@@ -772,11 +777,11 @@ GetNwkStatus(void)
 static void
 SetCustomCFG(void)
 {
-	uint8_t payload = 0x00; //dBd
+	int8_t payload = 0; //dBd
 	USART_Transmit(&hlpuart1, "SetCustomCFG\n\r");
 
-		// send unconfirmed radio message
-		WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_SET_CUSTOM_CFG_REQ, &payload, 1);
+		// send set custom config message
+	WiMOD_LoRaWAN_SetCustomConfig(payload);
 }
 
 //------------------------------------------------------------------------------
@@ -791,8 +796,8 @@ GetCustomCFG(void)
 {
 	USART_Transmit(&hlpuart1, "GetCustomCFG\n\r");
 
-		// send unconfirmed radio message
-		WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_GET_CUSTOM_CFG_REQ, NULL, 0);
+		// send get custom config message
+	WiMOD_LoRaWAN_GetCustomConfig();
 }
 
 //------------------------------------------------------------------------------
@@ -806,11 +811,12 @@ static void
 ActivateABP(void)
 {
 	uint8_t payload[37] = {
-			0x6c, 0x01, 0x00, 0x00,
-			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
-			0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00,
-			0x00
+			0x6c, 0x01, 0x00, 0x00, //Device address (LSB)
+			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,	//Network key (MSB)
+			0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00, //App key (MSB)
+			0x00 //End of payload
 	};
+
 	USART_Transmit(&hlpuart1, "Activate ABP\n\r");
 
 	// send unconfirmed radio message
@@ -1151,6 +1157,7 @@ SendUData(void)
     // send unconfirmed radio message
     WiMOD_LoRaWAN_SendURadioData(port, data, 4);
 }
+
 //------------------------------------------------------------------------------
 //
 //  SendCData
@@ -1177,6 +1184,20 @@ SendCData(void)
 
     // send unconfirmed radio message
     WiMOD_LoRaWAN_SendCRadioData(port, data, 6);
+}
+
+//------------------------------------------------------------------------------
+//
+//  FactoryReset
+//
+//  @brief: factory reset
+//
+//------------------------------------------------------------------------------
+static void
+FactoryReset(void)
+{
+	USART_Transmit(&hlpuart1, "FactoryReset\n\r");
+	WiMOD_LoRaWAN_FactoryReset();
 }
 //------------------------------------------------------------------------------
 // end of file

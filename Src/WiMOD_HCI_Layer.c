@@ -188,7 +188,6 @@ WiMOD_HCI_Process()
         // yes, forward to SLIP decoder, decoded SLIP message will be passed to
         // function "WiMOD_HCI_ProcessRxMessage"
         SLIP_DecodeData(rxBuf, rxLength);
-        USART_Transmit(&hlpuart1, "-> enter command: ");
 
     }
 }

@@ -202,6 +202,13 @@ WiMOD_LoRaWAN_Init(
 int WiMOD_DevMgmt_Msg_Req(uint8_t msg_id, uint8_t* val, uint16_t len);
 int WiMOD_LoRaWAN_Msg_Req(uint8_t msg_id, uint8_t* val, uint16_t len);
 
+//Get CustomConfig
+int
+WiMOD_LoRaWAN_GetCustomConfig(void);
+//set CustomConfig
+int
+WiMOD_LoRaWAN_SetCustomConfig(int8_t val);
+//set OPMODE
 int
 WiMOD_LoRaWAN_SetOPMODE(uint8_t val);
 //get OPMODE
@@ -232,7 +239,12 @@ WiMOD_LoRaWAN_Reset(void);
 int
 WiMOD_LoRaWAN_GetDeviceStatus(void);
 
-
+// get device status
+int
+WiMOD_LoRaWAN_GetNkwStatus(void);
+// factory reset
+int
+WiMOD_LoRaWAN_FactoryReset(void);
 
 // join network
 int

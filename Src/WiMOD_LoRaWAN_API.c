@@ -290,6 +290,31 @@ int WiMOD_LoRaWAN_Msg_Req(uint8_t msg_id, uint8_t* val, uint16_t len)
 	return WiMOD_HCI_SendMessage(&TxMessage);
 }
 
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_GetCustomConfig
+//
+//  @brief: Get custom config
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_GetCustomConfig(void)
+{
+	return WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_GET_CUSTOM_CFG_REQ, NULL, 0);
+}
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_SetCustomConfig
+//
+//  @brief: set custom config
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_SetCustomConfig(int8_t val)
+{
+	return WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_SET_CUSTOM_CFG_REQ, (uint8_t*) &val, 1);
+}
 
 //------------------------------------------------------------------------------
 //
@@ -398,6 +423,31 @@ WiMOD_LoRaWAN_GetFirmwareVersion(void)
     return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_GET_FW_VERSION_REQ, NULL, 0);
 }
 
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_GetNkwStatus
+//
+//  @brief: get network status
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_GetNkwStatus(void)
+{
+	return WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_GET_NWK_STATUS_REQ, NULL, 0);
+}
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_FactoryReset
+//
+//  @brief: factory reset
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_FactoryReset(void)
+{
+	return WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_FACTORY_RESET_REQ, NULL, 0);
+}
 //------------------------------------------------------------------------------
 //
 //  Reset
