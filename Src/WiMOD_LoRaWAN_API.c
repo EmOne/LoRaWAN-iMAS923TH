@@ -373,6 +373,20 @@ WiMOD_LoRaWAN_GetRTCAlarm()
 
 //------------------------------------------------------------------------------
 //
+//  SetRTC
+//
+//  @brief: set RTC
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_SetRTCAlarm(uint8_t* alarm)
+{
+    return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_SET_RTC_ALARM_REQ, alarm, 4);
+}
+
+
+//------------------------------------------------------------------------------
+//
 //  GetRTC
 //
 //  @brief: get RTC
@@ -382,6 +396,19 @@ int
 WiMOD_LoRaWAN_GetRTC()
 {
     return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_GET_RTC_REQ, NULL, 0);
+}
+
+//------------------------------------------------------------------------------
+//
+//  SetRTC
+//
+//  @brief: set RTC
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_SetRTC(uint32_t* time)
+{
+    return WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_SET_RTC_REQ, (uint8_t *) time, 4);
 }
 
 //------------------------------------------------------------------------------
@@ -692,15 +719,16 @@ WiMOD_LoRaWAN_DevMgmt_Get_RTC_ALARM_Rsp(TWiMOD_HCI_Message* rxMessage)
 		USART_Transmit(&hlpuart1, "\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[3], 3);
-		num2str((help & 0xFF0000) >> 16, str);	//Hour
 		USART_Transmit(&hlpuart1, "RTC ALARM Time: [");
+		num2str((help & 0xFF), str);	//Hour
 		USART_Transmit(&hlpuart1, (const char*) str);
 		USART_Transmit(&hlpuart1, ":");
 		num2str((help & 0xFF00) >> 8, str);	//Minute
 		USART_Transmit(&hlpuart1, (const char*) str);
 		USART_Transmit(&hlpuart1, ":");
-		num2str((help & 0xFF), str);	//Second
+		num2str((help & 0xFF0000) >> 16, str);	//second
 		USART_Transmit(&hlpuart1, (const char*) str);
+
 		USART_Transmit(&hlpuart1, "]\n\r");
 	}
 }

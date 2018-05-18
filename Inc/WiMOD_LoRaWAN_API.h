@@ -220,9 +220,15 @@ WiMOD_LoRaWAN_ClearRTCAlarm(void);
 // get RTC alarm
 int
 WiMOD_LoRaWAN_GetRTCAlarm(void);
+// set RTC alarm
+int
+WiMOD_LoRaWAN_SetRTCAlarm(uint8_t* alarm);
 // get RTC
 int
 WiMOD_LoRaWAN_GetRTC(void);
+// set RTC
+int
+WiMOD_LoRaWAN_SetRTC(uint32_t* time);
 // ping device
 int
 WiMOD_LoRaWAN_SendPing(void);

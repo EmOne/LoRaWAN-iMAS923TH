@@ -55,7 +55,9 @@ static void 	SetOPMODE(void);
 static void 	ClearOPMODE(void);
 static void     ClearRTCAlarm(void);
 static void     GetRTC(void);
+static void     SetRTC(void);
 static void     GetAlarm(void);
+static void     SetAlarm(void);
 static void     GetFirmwareVersion(void);
 static void     GetDeviceInfo(void);
 static void     GetDeviceStatus(void);
@@ -360,7 +362,7 @@ void USART_TxWelcomeMessage(void) {
 	USART_Transmit(&hlpuart1, " -------------------------------------------\n\r");
 	USART_Transmit(&hlpuart1, " iMAS923TH Expansion Board for STM32 NUCLEO\n\r\n\r");
 	USART_Transmit(&hlpuart1, " Copyright 2018 @ EmOne; The MIT License (MIT)\n\r\n\r");
-	USART_Transmit(&hlpuart1, " Welcome to WiMOD HCL example!!!\n\r");
+	USART_Transmit(&hlpuart1, " Welcome to eMOD HCL example!!!\n\r");
 
 }
 
@@ -628,12 +630,18 @@ void USART_CheckAppCmd(void)
 				// get rtc
 				GetRTC();
 				break;
-
+			case '*':
+				// set RTC
+				SetRTC();
+				break;
 			case 'a':
 				// get rtc alarm
 				GetAlarm();
 				break;
-
+			case '+':
+							// set rtc alarm
+							SetAlarm();
+							break;
 			case 's':
 				// device status
 				GetDeviceStatus();
@@ -733,9 +741,9 @@ void USART_ShowMenu(
     USART_Transmit(&hlpuart1, "[C]     : get custom configuration\n\r");
     USART_Transmit(&hlpuart1, "[O]     : set custom configuration\n\r");
     USART_Transmit(&hlpuart1, "[t]     : get RTC\n\r");
-//    USART_Transmit(&hlpuart1, "[*]     : set RTC\n\r");
+    USART_Transmit(&hlpuart1, "[*]     : set RTC\n\r");
 	USART_Transmit(&hlpuart1, "[a]     : get RTC alarm\n\r");
-//	USART_Transmit(&hlpuart1, "[+]     : set RTC alarm\n\r");
+	USART_Transmit(&hlpuart1, "[+]     : set RTC alarm\n\r");
 	USART_Transmit(&hlpuart1, "[-]     : clear RTC alarm\n\r");
     USART_Transmit(&hlpuart1, "[r]     : reset device\n\r");
     USART_Transmit(&hlpuart1, "[p]     : ping device\n\r");
@@ -938,8 +946,9 @@ GetDevEUI(void)
 static void
 SetDevEUI(void)
 {
+	//TODO: Set Device EUI
 	//Valid Dev EUI number
-//	uint8_t eui = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+//	uint8_t eui = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; //70 B3 D5 8F F0 03 8D 39
 	int i;
 	for (i = 2; i < 18; ++i) {
 		if((isxdigit(UsartTextString[i]) != true))
@@ -1029,6 +1038,42 @@ GetRTC(void)
 
     WiMOD_LoRaWAN_GetRTC();
 }
+
+//------------------------------------------------------------------------------
+//
+//  SetRTC
+//
+//  @brief: set RTC
+//
+//------------------------------------------------------------------------------
+static void
+SetRTC(void)
+{
+	USART_Transmit(&hlpuart1, "set RTC\n\r");
+	uint32_t time = 0;
+	//2018-5-20 [12:30:30]
+	//Year
+	time |= 18;
+	time <<= 6;
+	//Days
+	time |= 20;
+	time <<= 5;
+	//Hours
+	time |= 12;
+	time <<= 5;
+	//Month
+	time |= 5;
+	time <<= 4;
+	//Minutes
+	time |= 30 ;
+			time <<=  6;
+	//Second
+	time |= 30;
+
+
+    WiMOD_LoRaWAN_SetRTC(&time);
+}
+
 //------------------------------------------------------------------------------
 //
 //  GetAlarm
@@ -1043,6 +1088,30 @@ GetAlarm(void)
 
     WiMOD_LoRaWAN_GetRTCAlarm();
 }
+
+//------------------------------------------------------------------------------
+//
+//  SetAlarm
+//
+//  @brief: set RTC Alarm device
+//
+//------------------------------------------------------------------------------
+static void
+SetAlarm(void)
+{
+	USART_Transmit(&hlpuart1, "set RTC alarm\n\r");
+	uint8_t payload[4] = {0};
+
+	payload[0] = 0x1;
+	//0x00 : single alarm
+	//0x01 : daily repeated alarm
+	payload[1] = 12;	//Hour
+	payload[2] = 30;	//Minute
+	payload[3] = 30;	//Second
+	WiMOD_LoRaWAN_SetRTCAlarm(payload);
+}
+
+
 //------------------------------------------------------------------------------
 //
 //  Ping
