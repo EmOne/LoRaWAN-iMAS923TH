@@ -362,7 +362,7 @@ void USART_TxWelcomeMessage(void) {
 	USART_Transmit(&hlpuart1, " -------------------------------------------\n\r");
 	USART_Transmit(&hlpuart1, " iMAS923TH Expansion Board for STM32 NUCLEO\n\r\n\r");
 	USART_Transmit(&hlpuart1, " Copyright 2018 @ EmOne; The MIT License (MIT)\n\r\n\r");
-	USART_Transmit(&hlpuart1, " Welcome to eMOD HCL example!!!\n\r");
+	USART_Transmit(&hlpuart1, " Welcome to eMOD HCL example (WiMOD compatible)!!!\n\r");
 
 }
 
