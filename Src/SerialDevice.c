@@ -66,6 +66,8 @@ static void     Join(void);
 static void     SendUData(void);
 static void     SendCData(void);
 static void		FactoryReset(void);
+static void		GetLinkADR(void);
+static void		SetLinkADR(void);
 #endif
 
 #define USART_STATUS_REGISTER   ISR                     //!< HAL USART status register name adapter.
@@ -686,7 +688,14 @@ void USART_CheckAppCmd(void)
 				// factory reset
 				FactoryReset();
 				break;
-
+			case 'Q':
+				//Get Link ADR
+				GetLinkADR();
+				break;
+			case 'W':
+				//Set Link ADR
+				SetLinkADR();
+				break;
 			case ' ':
 				USART_ShowMenu(
 	#ifdef Q_OS_WIN
@@ -737,6 +746,8 @@ void USART_ShowMenu(
     USART_Transmit(&hlpuart1, "[N]     : get network status\n\r");
     USART_Transmit(&hlpuart1, "[K]     : get Radio Stack Configuration\n\r");
     USART_Transmit(&hlpuart1, "[S]     : set Radio Stack Configuration\n\r");
+    USART_Transmit(&hlpuart1, "[Q]     : get link ADR\n\r");
+    USART_Transmit(&hlpuart1, "[W]     : set link ADR\n\r");
     USART_Transmit(&hlpuart1, "[G]     : get support band\n\r");
     USART_Transmit(&hlpuart1, "[C]     : get custom configuration\n\r");
     USART_Transmit(&hlpuart1, "[O]     : set custom configuration\n\r");
@@ -1267,6 +1278,37 @@ FactoryReset(void)
 {
 	USART_Transmit(&hlpuart1, "FactoryReset\n\r");
 	WiMOD_LoRaWAN_FactoryReset();
+}
+
+//------------------------------------------------------------------------------
+//
+//  GetLinkADR
+//
+//  @brief: get link ADR
+//
+//------------------------------------------------------------------------------
+static void		GetLinkADR(void)
+{
+	USART_Transmit(&hlpuart1, "GetLinkADR\n\r");
+	WiMOD_LoRaWAN_GetLinkADR();
+}
+
+//------------------------------------------------------------------------------
+//
+//  SetLinkADR
+//
+//  @brief: set link ADR
+//
+//------------------------------------------------------------------------------
+static void		SetLinkADR(void)
+{
+	USART_Transmit(&hlpuart1, "SetLinkADR\n\r");
+	uint8_t payload = 0;
+//	LinkADRReq Option:
+//	0: LoRaWAN v1.0.2
+//	1: Semtech proposal
+//	2: KPN/Actility proposal
+	WiMOD_LoRaWAN_SetLinkADR(&payload);
 }
 //------------------------------------------------------------------------------
 // end of file

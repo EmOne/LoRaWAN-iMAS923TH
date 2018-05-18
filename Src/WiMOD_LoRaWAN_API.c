@@ -106,6 +106,9 @@ static void
 WiMOD_LoRaWAN_Process_Get_Network_Status_RSP(TWiMOD_HCI_Message* rxMessage);
 
 static void
+WiMOD_LoRaWAN_Process_Get_LINK_ADR_RSP(TWiMOD_HCI_Message* rxMessage);
+
+static void
 WiMOD_LoRaWAN_ShowResponse(const char* string, const TIDString* statusTable, UINT8 statusID);
 
 //------------------------------------------------------------------------------
@@ -475,6 +478,33 @@ WiMOD_LoRaWAN_FactoryReset(void)
 {
 	return WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_FACTORY_RESET_REQ, NULL, 0);
 }
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_GetLinkADR
+//
+//  @brief: GetLinkADR
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_GetLinkADR(void)
+{
+	return WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_GET_LINKADRREQ_CONFIG_REQ, NULL, 0);
+}
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_SetLinkADR
+//
+//  @brief: SetLinkADR
+//
+//------------------------------------------------------------------------------
+int
+WiMOD_LoRaWAN_SetLinkADR(uint8_t * payload)
+{
+	return WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_SET_LINKADRREQ_CONFIG_REQ, payload, 1);
+}
+
 //------------------------------------------------------------------------------
 //
 //  Reset
@@ -1073,6 +1103,14 @@ WiMOD_LoRaWAN_Process_LoRaWAN_Message(TWiMOD_HCI_Message*  rxMessage)
         	WiMOD_LoRaWAN_Process_Get_Network_Status_RSP(rxMessage);
         	break;
 
+        case LORAWAN_MSG_GET_LINKADRREQ_CONFIG_RSP:
+        	WiMOD_LoRaWAN_Process_Get_LINK_ADR_RSP(rxMessage);
+        	break;
+
+        case LORAWAN_MSG_SET_LINKADRREQ_CONFIG_RSP:
+        	WiMOD_LoRaWAN_ShowResponse("set link adr response", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
+            break;
+
         default:
         		USART_Transmit(&hlpuart1, "Unhandled LoRaWAN SAP message received - MsgID : 0x");
         		USART_Transmit(&hlpuart1, num2hex(rxMessage->MsgID, BYTE_F));
@@ -1277,6 +1315,40 @@ WiMOD_LoRaWAN_Process_U_DataRxIndication(TWiMOD_HCI_Message* rxMessage)
               (int)rxInfo[0], (int)rxInfo[1], (int)rxInfo[2],
               (int)rxInfo[3], (int)rxInfo[4]);
     }
+}
+
+//------------------------------------------------------------------------------
+//
+//  WiMOD_LoRaWAN_Process_Get_LINK_ADR_RSP
+//
+//  @brief: Get LINK ADR ReSPonse
+//
+//------------------------------------------------------------------------------
+static void
+WiMOD_LoRaWAN_Process_Get_LINK_ADR_RSP(TWiMOD_HCI_Message* rxMessage)
+{
+	WiMOD_LoRaWAN_ShowResponse(" Get Network Status ReSPonse", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
+
+		if (rxMessage->Payload[0] == LORAWAN_STATUS_OK) {
+			USART_Transmit(&hlpuart1, "LinkADRReq Option: ");
+			switch (rxMessage->Payload[1]) {
+				case 0:
+					USART_Transmit(&hlpuart1, "LoRaWAN v1.0.2");
+					break;
+				case 1:
+					USART_Transmit(&hlpuart1, "Semtech proposal");
+									break;
+				case 2:
+					USART_Transmit(&hlpuart1, "KPN/Actility proposal");
+									break;
+				default:
+					USART_Transmit(&hlpuart1, "Unknown proposal");
+					break;
+			}
+			USART_Transmit(&hlpuart1, "\n\r");
+		}
+
+
 }
 
 //------------------------------------------------------------------------------

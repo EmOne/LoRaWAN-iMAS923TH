@@ -264,6 +264,14 @@ WiMOD_LoRaWAN_SendURadioData(UINT8 port, UINT8* data, int length);
 int
 WiMOD_LoRaWAN_SendCRadioData(UINT8 port, UINT8* data, int length);
 
+// get link adr
+int
+WiMOD_LoRaWAN_GetLinkADR(void);
+
+// set link adr
+int
+WiMOD_LoRaWAN_SetLinkADR(uint8_t * payload);
+
 // receiver process
 void
 WiMOD_LoRaWAN_Process(void);
