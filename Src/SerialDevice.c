@@ -566,9 +566,6 @@ void USART_CheckAppCmd(void)
 		if (strchr((char *) UsartTextString, '\r') != NULL) {
 			/* Decode the entered command string */
 			strtok((char *) UsartTextString, "\r");
-//			USART_DecodeTextString(UsartTextString, L6470_TextCommandBundle,
-//					(uint8_t*) L6470_DaisyChainSpiTxStruct,
-//					(uint8_t*) L6470_DaisyChainSpiRxStruct);
 
 			// handle commands
 			switch (UsartTextString[0]) {

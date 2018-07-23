@@ -505,6 +505,12 @@ WiMOD_LoRaWAN_SetLinkADR(uint8_t * payload)
 	return WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_SET_LINKADRREQ_CONFIG_REQ, payload, 1);
 }
 
+// set mac cmd
+int
+WiMOD_LoRaWAN_SetMAC_CMD(uint8_t * payload){
+	return WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_SEND_MAC_CMD_REQ, payload, 16);
+}
+
 //------------------------------------------------------------------------------
 //
 //  Reset
@@ -1063,6 +1069,10 @@ WiMOD_LoRaWAN_Process_LoRaWAN_Message(TWiMOD_HCI_Message*  rxMessage)
                 WiMOD_LoRaWAN_Process_C_DataRxIndication(rxMessage);
                 break;
 
+        case	LORAWAN_MSG_SEND_MAC_CMD_RSP:
+        		WiMOD_LoRaWAN_ShowResponse("send MAC CMD response", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
+
+				break;
         case    LORAWAN_MSG_RECV_MAC_CMD_IND:
         		WiMOD_LoRaWAN_Process_MAC_CMDRxIndication(rxMessage);
         		break;

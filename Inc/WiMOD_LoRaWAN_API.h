@@ -272,6 +272,10 @@ WiMOD_LoRaWAN_GetLinkADR(void);
 int
 WiMOD_LoRaWAN_SetLinkADR(uint8_t * payload);
 
+// set mac cmd
+int
+WiMOD_LoRaWAN_SetMAC_CMD(uint8_t * payload);
+
 // receiver process
 void
 WiMOD_LoRaWAN_Process(void);
